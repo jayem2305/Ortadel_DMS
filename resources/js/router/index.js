@@ -7,10 +7,10 @@ import Tickets from "../components/files.vue";
 import User from "../components/users.vue";
 import Contacts from "../components/access.vue";
 import Calendar from "../components/calendar.vue";
-import tags from "../components/email.vue";
+import tags from "../components/tags.vue";
 import Layout from "../components/layout.vue";
 import Home from "../components/Dashboard.vue";
-import Permissions from "../components/permissions.vue";
+import Permissions from "../components/permission.vue";
 import Logs from "../components/logs.vue";
 import Recycle from "../components/recycle.vue";
 import Login from "../components/Login.vue";
@@ -27,7 +27,7 @@ const routes = [
       { path: "files", component: Tickets, meta: { title: "File Management" } },
       { path: "user", component: User, meta: { title: "User Management" } },
       { path: "access", component: Contacts, meta: { title: "Access Controls" } },
-      { path: "permissions", component: Permissions, meta: { title: "Users Management" } },
+      { path: "permission", component: Permissions, meta: { title: "Users Management" } },
       { path: "calendar", component: Calendar, meta: { title: "Calendar" } },
       { path: "tags", component: tags, meta: { title: "Tags" } },
       { path: "audit-logs", component: Logs, meta: { title: "Audit Logs" } },

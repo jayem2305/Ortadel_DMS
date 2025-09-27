@@ -12,7 +12,7 @@ class GroupController extends Controller
     public function index()
     {
         try {
-            $groups = Group::all(['id', 'name']); // only fetch id + name
+            $groups = Group::all(['id', 'name', 'description', 'status', 'logo']);
             return response()->json([
                 'groups' => $groups
             ]);
@@ -23,6 +23,7 @@ class GroupController extends Controller
             ], 500);
         }
     }
+
 
     // Store new group
     public function store(Request $request)

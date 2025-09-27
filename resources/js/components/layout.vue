@@ -343,7 +343,7 @@ export default {
       { to: "/dashboard", label: "Dashboard", icon: "fas fa-home" },
       { to: "/files", label: "Document Management", icon: "fa-solid fa-folder" },
       { to: "/user", label: "List of Users", icon: "fa-solid fa-user" },
-      { to: "/permissions", label: "Users Management", icon: "fa-solid fa-users" },
+      { to: "/permission", label: "Users Management", icon: "fa-solid fa-users" },
       { to: "/access", label: "Access Controls", icon: "fa-solid fa-file-alt" },
       { to: "/tags", label: "Tags", icon: "fas fa-tags" },
       { to: "/calendar", label: "Calendar", icon: "fas fa-calendar-alt" },
