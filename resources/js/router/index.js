@@ -4,13 +4,15 @@ import { useUserStore } from "../stores/user";
 
 import Settings from "../components/settings.vue";
 import Tickets from "../components/files.vue";
-import Clients from "../components/users.vue";
-import Contacts from "../components/residents.vue";
-import Team from "../components/reports.vue";
+import User from "../components/users.vue";
+import Contacts from "../components/access.vue";
 import Calendar from "../components/calendar.vue";
-import Email from "../components/email.vue";
-import Layout from "../components/Layout.vue";
+import tags from "../components/email.vue";
+import Layout from "../components/layout.vue";
 import Home from "../components/Dashboard.vue";
+import Permissions from "../components/permissions.vue";
+import Logs from "../components/logs.vue";
+import Recycle from "../components/recycle.vue";
 import Login from "../components/Login.vue";
 
 const routes = [
@@ -23,11 +25,13 @@ const routes = [
       { path: "", component: Home, meta: { title: "Dashboard" } },
       { path: "dashboard", component: Home, meta: { title: "Dashboard" } },
       { path: "files", component: Tickets, meta: { title: "File Management" } },
-      { path: "users", component: Clients, meta: { title: "User Management" } },
-      { path: "residents", component: Contacts, meta: { title: "Resident Records" } },
-      { path: "requests", component: Team, meta: { title: "Document Requests" } },
+      { path: "user", component: User, meta: { title: "User Management" } },
+      { path: "access", component: Contacts, meta: { title: "Access Controls" } },
+      { path: "permissions", component: Permissions, meta: { title: "Users Management" } },
       { path: "calendar", component: Calendar, meta: { title: "Calendar" } },
-      { path: "reports", component: Email, meta: { title: "Reports" } },
+      { path: "tags", component: tags, meta: { title: "Tags" } },
+      { path: "audit-logs", component: Logs, meta: { title: "Audit Logs" } },
+      { path: "recycle-bin", component: Recycle, meta: { title: "Recycle bin" } },
       { path: "settings", component: Settings, meta: { title: "Settings" } },
     ],
   },

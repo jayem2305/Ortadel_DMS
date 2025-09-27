@@ -108,13 +108,21 @@
               v-if="adduserOpen"
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a @click="openModal" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer">
                 <i class="fa-solid fa-user-plus mr-2"></i> Add User
               </a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+               <a
+                @click.prevent="openModalAddGroup"
+                href="#"
+                class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+              >
                 <i class="fa-solid fa-ticket mr-2"></i> Add Group
               </a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a 
+                @click.prevent="openModalAddRole"
+                href="#"
+                class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+              >
                 <i class="fa-solid fa-briefcase mr-2"></i> Add Role
               </a>
             </div>
@@ -133,13 +141,16 @@
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
               <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-user-plus mr-2"></i> New Contact
+                <i class="fa-solid fa-user-plus mr-2"></i> New File
               </a>
               <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-ticket mr-2"></i> New Ticket
+                <i class="fa-solid fa-ticket mr-2"></i> New Folder
               </a>
               <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-briefcase mr-2"></i> New Project
+                <i class="fa-solid fa-briefcase mr-2"></i> New Batch File
+              </a>
+              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                <i class="fa-solid fa-briefcase mr-2"></i> New Scanned Document
               </a>
             </div>
           </div>
@@ -257,17 +268,25 @@
       <main class="p-6 overflow-y-auto">
         <router-view></router-view>
       </main>
+       <AddUserModal v-if="modalState.isAddUserOpen" />
+       <AddGroupModal v-if="modalState.isAddGroupOpen" />
+       <AddRoleModal v-if="modalState.isAddRoleOpen" />
     </div>
   </div>
+  
 </template>
 
 <script>
 import { ref, computed, watch, onMounted } from "vue";
 import { useUserStore } from "../stores/user";
 import { useRouter, useRoute } from "vue-router";
-
+import { modalState } from '../stores/modal';
+import AddUserModal from "../Pop-up/AddUserModal.vue"; 
+import AddGroupModal from "../Pop-up/AddGroupModal.vue";
+import AddRoleModal from "../Pop-up/AddRoleModal.vue";
 export default {
   name: "SidebarLayout",
+  components: { AddUserModal,AddGroupModal,AddRoleModal }, 
   setup() {
     const sidebarOpen = ref(true);
     const profileDropdownOpen = ref(false);
@@ -291,7 +310,11 @@ export default {
       router.push("/login");
     };
 
-    watch(() => userStore.user, (newUser) => console.log("Logged in user:", newUser), { immediate: true });
+    watch(
+      () => userStore.user,
+      (newUser) => console.log("Logged in user:", newUser),
+      { immediate: true }
+    );
 
     // Close dropdowns when clicking outside
     onMounted(() => {
@@ -305,14 +328,27 @@ export default {
       });
     });
 
+    const openModal = () => {
+      modalState.isAddUserOpen = true;
+      adduserOpen.value = false; // also close dropdown
+    };
+    const openModalAddGroup = () => {
+      modalState.isAddGroupOpen = true;
+    };
+    const openModalAddRole  = () => {
+      modalState.isAddRoleOpen = true;
+    };
+
     const menu = [
       { to: "/dashboard", label: "Dashboard", icon: "fas fa-home" },
-      { to: "/files", label: "File Management", icon: "fa-solid fa-folder" },
-      { to: "/users", label: "User Management", icon: "fa-solid fa-users" },
-      { to: "/residents", label: "Resident Records", icon: "fa-solid fa-user" },
-      { to: "/requests", label: "Document Requests", icon: "fa-solid fa-file-alt" },
+      { to: "/files", label: "Document Management", icon: "fa-solid fa-folder" },
+      { to: "/user", label: "List of Users", icon: "fa-solid fa-user" },
+      { to: "/permissions", label: "Users Management", icon: "fa-solid fa-users" },
+      { to: "/access", label: "Access Controls", icon: "fa-solid fa-file-alt" },
+      { to: "/tags", label: "Tags", icon: "fas fa-tags" },
       { to: "/calendar", label: "Calendar", icon: "fas fa-calendar-alt" },
-      { to: "/reports", label: "Reports", icon: "fas fa-chart-line" },
+      { to: "/audit-logs", label: "Audit Logs", icon: "fas fa-clipboard-list" },
+      { to: "/recycle-bin", label: "Recycle Bin", icon: "fas fa-trash" },
     ];
 
     return {
@@ -328,7 +364,11 @@ export default {
       logout,
       menu,
       isDashboard,
-      userStore
+      userStore,
+      modalState, 
+      openModal,  
+      openModalAddGroup,
+      openModalAddRole 
     };
   },
 };

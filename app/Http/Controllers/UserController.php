@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+
+class UserController extends Controller
+{
+    /**
+     * Store a new user in the database
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|string',
+            'first_name' => 'required|string',
+            'last_name' => 'required|string',
+            'email' => [
+                'required',
+                'email',
+                function ($attribute, $value, $fail) {
+                    if (User::where('email_hash', hash('sha256', $value))->exists()) {
+                        $fail('The ' . $attribute . ' has already been taken.');
+                    }
+                }
+            ],
+            'password' => 'required|string|confirmed|min:8',
+            'assigned_color' => 'nullable|string',
+            'role_id' => 'required|integer|exists:roles,id', // changed to integer FK
+            'groups' => 'nullable|array',
+        ]);
+
+        $user = User::create([
+            'user_id' => $validated['user_id'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'], // auto-hashed by cast
+            'assigned_color' => $validated['assigned_color'] ?? null,
+            'role_id' => $validated['role_id'], // integer FK
+            'groups' => $validated['groups'] ?? [],
+            'created_by' => Auth::id(),
+            'last_updated_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'message' => 'User created successfully',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * List all users
+     */
+    public function index()
+    {
+        return response()->json(User::with('role')->get()); // eager load role
+    }
+
+    /**
+     * Show single user
+     */
+    public function show(User $user)
+    {
+        $user->load('role'); // eager load role
+        return response()->json($user);
+    }
+
+    /**
+     * Update user
+     */
+    public function update(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'first_name' => ['sometimes', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'string', 'max:100'],
+            'email' => ['sometimes', 'email', Rule::unique('users')->ignore($user->id)],
+            'password' => ['nullable', 'confirmed', 'min:8'],
+            'assigned_color' => ['nullable', 'string', 'max:20'],
+            'role_id' => ['sometimes', 'integer', 'exists:roles,id'], // integer FK
+            'groups' => ['nullable', 'array'],
+        ]);
+
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['last_updated_by'] = Auth::id();
+
+        $user->update($validated);
+
+        $user->load('role'); // eager load role
+
+        return response()->json([
+            'message' => 'User updated successfully!',
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Delete user
+     */
+    public function destroy(User $user)
+    {
+        $user->delete();
+
+        return response()->json(['message' => 'User deleted successfully!']);
+    }
+
+    public function getLastUserId()
+    {
+        $lastUser = User::orderBy('id', 'desc')->first();
+
+        $lastId = 0;
+        if ($lastUser) {
+            $lastId = (int) str_replace('DMS_', '', $lastUser->user_id);
+        }
+
+        return response()->json([
+            'last_id' => $lastId,
+            'next_user_id' => 'DMS_' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT)
+        ]);
+    }
+}

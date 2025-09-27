@@ -29,7 +29,9 @@
             type="email"
             v-model="email"
             placeholder="Enter your email"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg 
+                   focus:outline-none focus:ring-2 focus:ring-[#2563EB] 
+                   focus:border-[#2563EB] transition"
             required
           />
         </div>
@@ -40,7 +42,9 @@
             type="password"
             v-model="password"
             placeholder="Enter your password"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-[#2563EB] transition"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg 
+                   focus:outline-none focus:ring-2 focus:ring-[#2563EB] 
+                   focus:border-[#2563EB] transition"
             required
           />
           <p class="text-right text-sm text-[#2563EB] hover:underline cursor-pointer mt-2">
@@ -52,7 +56,9 @@
         <button
           type="submit"
           :disabled="loading"
-          class="w-full bg-[#2563EB] text-white py-2.5 rounded-lg hover:bg-[#1E40AF] transition font-semibold flex items-center justify-center"
+          class="w-full bg-[#2563EB] text-white py-2.5 rounded-lg 
+                 hover:bg-[#1E40AF] transition font-semibold 
+                 flex items-center justify-center"
         >
           <span v-if="!loading">Login</span>
           <svg
@@ -80,34 +86,10 @@
       </form>
 
       <!-- Error -->
-      <p v-if="error" class="text-red-600 text-center mt-3 font-medium">{{ error }}</p>
-<!--
-      <div class="flex items-center my-6">
-        <hr class="flex-1 border-gray-300" />
-        <span class="px-2 text-gray-500 text-sm">or</span>
-        <hr class="flex-1 border-gray-300" />
-      </div>
-      <div class="flex space-x-4">
-        <button
-          @click="handleGoogleLogin"
-          :disabled="loadingGoogle"
-          class="flex-1 flex items-center justify-center bg-[#EA4335] rounded-lg py-2.5 text-white hover:bg-red-600 transition font-medium shadow-sm"
-        >
-          Google
-        </button>
-        <button
-          @click="handleOutlookLogin"
-          :disabled="loadingOutlook"
-          class="flex-1 flex items-center justify-center bg-[#2563EB] rounded-lg py-2.5 text-white hover:bg-blue-700 transition font-medium shadow-sm"
-        >
-          Outlook
-        </button>
-      </div>
-      <p class="text-center mt-6 text-sm text-gray-700">
-        New user?
-        <a href="/signup" class="text-[#2563EB] font-semibold hover:underline">Sign up here</a>
+      <p v-if="error" class="text-red-600 text-center mt-3 font-medium">
+        {{ error }}
       </p>
-    -->
+
       <!-- Footer -->
       <footer class="text-center text-xs text-gray-400 mt-8">
         © 2025 Barangay Information System — v.01.01.01
@@ -116,8 +98,8 @@
   </div>
 </template>
 
-
 <script>
+import axios from "axios";
 import { useUserStore } from "../stores/user";
 
 export default {
@@ -137,33 +119,20 @@ export default {
       const userStore = useUserStore();
 
       try {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // 🔑 Call Laravel API
+        const res = await axios.post("http://127.0.0.1:8000/login", {
+          email: this.email,
+          password: this.password,
+        });
 
-        // --- Mock data instead of real API ---
-        const mockUsers = [
-          { email: "test@example.com", password: "123456", name: "John Doe" },
-          { email: "admin@example.com", password: "admin123", name: "Admin User" },
-        ];
+        // Save globally (user + token)
+        userStore.login(res.data.user, res.data.token);
 
-        const foundUser = mockUsers.find(
-          (u) => u.email === this.email && u.password === this.password
-        );
-
-        if (!foundUser) {
-          throw new Error("Invalid email or password");
-        }
-
-        // Mock auth token
-        const fakeToken = "sample_token_123456";
-
-        // Save globally
-        userStore.login(foundUser, fakeToken);
-
-        // Redirect
+        // Redirect to dashboard
         this.$router.push("/dashboard");
       } catch (err) {
-        this.error = err.message || "Login failed";
+        // Show backend error if available
+        this.error = err.response?.data?.message || "Login failed";
       } finally {
         this.loading = false;
       }

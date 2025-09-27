@@ -1,0 +1,38 @@
+/* Backdrop fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Scale modal box */
+.scale-enter-active,
+.scale-leave-active {
+  transition: all 0.2s ease;
+}
+.scale-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Custom slim scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* Tailwind slate-300 */
+  border-radius: 9999px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* Tailwind slate-400 */
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
