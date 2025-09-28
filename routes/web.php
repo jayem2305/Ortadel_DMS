@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\PermissionController;
 // Auth route
 Route::post('/login', [AuthController::class, 'login']);
@@ -16,7 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('groups', GroupController::class);
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('permissions', PermissionController::class);
-
+    Route::apiResource('folders', FolderController::class);
 });
 
 // Catch-all route for Vue SPA

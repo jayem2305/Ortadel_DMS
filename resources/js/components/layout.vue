@@ -99,19 +99,19 @@
           <!-- Add User Dropdown -->
           <div class="relative dropdown">
             <button
-              @click.stop="toggleAddUserDropdown"
+              @click.stop="toggleDropdown('adduser')"
               class="flex items-center justify-center w-9 h-9 bg-[#2563EB] text-white rounded-lg hover:bg-[#1E40AF] transition"
             >
               <i class="fa-solid fa-user-plus"></i>
             </button>
             <div
-              v-if="adduserOpen"
+              v-if="openDropdown === 'adduser'"
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
               <a @click="openModal" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer">
                 <i class="fa-solid fa-user-plus mr-2"></i> Add User
               </a>
-               <a
+              <a
                 @click.prevent="openModalAddGroup"
                 href="#"
                 class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
@@ -131,26 +131,26 @@
           <!-- Plus Dropdown -->
           <div class="relative dropdown">
             <button
-              @click.stop="togglePlusDropdown"
+              @click.stop="toggleDropdown('plus')"
               class="flex items-center justify-center w-9 h-9 bg-[#2563EB] text-white rounded-lg hover:bg-[#1E40AF] transition"
             >
               <i class="fa-solid fa-plus"></i>
             </button>
             <div
-              v-if="plusDropdownOpen"
+              v-if="openDropdown === 'plus'"
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-user-plus mr-2"></i> New File
+              <a @click.prevent="openNewFileModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                <i class="fa-regular fa-file mr-2"></i> New File
               </a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-ticket mr-2"></i> New Folder
+              <a @click.prevent="openNewFolderModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                <i class="fa-regular fa-folder mr-2"></i> New Folder
               </a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-briefcase mr-2"></i> New Batch File
+              <a @click.prevent="openNewBatchModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                <i class="fa-solid fa-layer-group mr-2"></i> New Batch File
               </a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                <i class="fa-solid fa-briefcase mr-2"></i> New Scanned Document
+              <a @click.prevent="openNewScannedModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                <i class="fa-solid fa-file-invoice mr-2"></i> New Scanned Document
               </a>
             </div>
           </div>
@@ -158,13 +158,13 @@
           <!-- Calendar Dropdown -->
           <div class="relative dropdown">
             <button
-              @click.stop="toggleCalendarDropdown"
+              @click.stop="toggleDropdown('calendar')"
               class="flex items-center justify-center w-10 h-10 bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-blue-50 hover:text-[#2563EB] transition"
             >
               <i class="fa-solid fa-calendar-days"></i>
             </button>
             <div
-              v-if="calendarDropdownOpen"
+              v-if="openDropdown === 'calendar'"
               class="absolute left-0 mt-2 w-72 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50 p-4"
             >
               <!-- Calendar Grid -->
@@ -236,7 +236,7 @@
 
           <!-- Profile Dropdown -->
           <div class="relative dropdown">
-            <button @click.stop="toggleProfileDropdown" class="focus:outline-none">
+            <button @click.stop="toggleDropdown('profile')" class="focus:outline-none">
               <img
                 src="https://randomuser.me/api/portraits/men/32.jpg"
                 class="h-8 w-8 rounded-full ring-2 ring-gray-300"
@@ -244,7 +244,7 @@
               />
             </button>
             <div
-              v-if="profileDropdownOpen"
+              v-if="openDropdown === 'profile'"
               class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
               <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
@@ -268,12 +268,16 @@
       <main class="p-6 overflow-y-auto">
         <router-view></router-view>
       </main>
-       <AddUserModal v-if="modalState.isAddUserOpen" />
-       <AddGroupModal v-if="modalState.isAddGroupOpen" />
-       <AddRoleModal v-if="modalState.isAddRoleOpen" />
+
+      <AddUserModal v-if="modalState.isAddUserOpen" />
+      <AddGroupModal v-if="modalState.isAddGroupOpen" />
+      <AddRoleModal v-if="modalState.isAddRoleOpen" />
+      <NewFileModal v-if="modalState.isNewFileModalOpen" />
+      <NewFolderModal v-if="modalState.isNewFolderModalOpen" />
+      <NewBatchModal v-if="modalState.isNewBatchModalOpen" />
+      <NewScannedModal v-if="modalState.isNewScannedModalOpen" />
     </div>
   </div>
-  
 </template>
 
 <script>
@@ -284,15 +288,16 @@ import { modalState } from '../stores/modal';
 import AddUserModal from "../Pop-up/AddUserModal.vue"; 
 import AddGroupModal from "../Pop-up/AddGroupModal.vue";
 import AddRoleModal from "../Pop-up/AddRoleModal.vue";
+import NewFileModal from '../Pop-up/NewFileModal.vue';
+import NewFolderModal from '../Pop-up/NewFolderModal.vue';
+import NewBatchModal from '../Pop-up/NewBatchModal.vue';
+import NewScannedModal from '../Pop-up/NewScannedModal.vue';
 export default {
   name: "SidebarLayout",
-  components: { AddUserModal,AddGroupModal,AddRoleModal }, 
+  components: { AddUserModal, AddGroupModal, AddRoleModal,NewFileModal,NewFolderModal, NewBatchModal, NewScannedModal }, 
   setup() {
     const sidebarOpen = ref(true);
-    const profileDropdownOpen = ref(false);
-    const plusDropdownOpen = ref(false);
-    const adduserOpen = ref(false);
-    const calendarDropdownOpen = ref(false);
+    const openDropdown = ref(null); // Tracks which dropdown is open
 
     const userStore = useUserStore();
     const router = useRouter();
@@ -300,10 +305,9 @@ export default {
 
     const isDashboard = computed(() => route.path === "/dashboard");
 
-    const toggleProfileDropdown = () => { profileDropdownOpen.value = !profileDropdownOpen.value; };
-    const togglePlusDropdown = () => { plusDropdownOpen.value = !plusDropdownOpen.value; };
-    const toggleAddUserDropdown = () => { adduserOpen.value = !adduserOpen.value; };
-    const toggleCalendarDropdown = () => { calendarDropdownOpen.value = !calendarDropdownOpen.value; };
+    const toggleDropdown = (dropdown) => {
+      openDropdown.value = openDropdown.value === dropdown ? null : dropdown;
+    };
 
     const logout = () => {
       userStore.logout();
@@ -316,28 +320,43 @@ export default {
       { immediate: true }
     );
 
-    // Close dropdowns when clicking outside
     onMounted(() => {
       document.addEventListener("click", (e) => {
         if (!e.target.closest(".dropdown")) {
-          adduserOpen.value = false;
-          plusDropdownOpen.value = false;
-          calendarDropdownOpen.value = false;
-          profileDropdownOpen.value = false;
+          openDropdown.value = null;
         }
       });
     });
 
     const openModal = () => {
       modalState.isAddUserOpen = true;
-      adduserOpen.value = false; // also close dropdown
+      openDropdown.value = null;
     };
     const openModalAddGroup = () => {
       modalState.isAddGroupOpen = true;
+      openDropdown.value = null;
     };
-    const openModalAddRole  = () => {
+    const openModalAddRole = () => {
       modalState.isAddRoleOpen = true;
+      openDropdown.value = null;
     };
+    const openNewFileModal = () => {
+      modalState.isNewFileModalOpen = true;
+      openDropdown.value = null;
+    };
+    const openNewFolderModal = () => {
+      modalState.isNewFolderModalOpen = true;
+      openDropdown.value = null;
+    };
+    const openNewBatchModal = () => {
+      modalState.isNewBatchModalOpen = true;
+      openDropdown.value = null;
+    };
+    const openNewScannedModal = () => {
+      modalState.isNewScannedModalOpen = true;
+      openDropdown.value = null;
+    };
+
 
     const menu = [
       { to: "/dashboard", label: "Dashboard", icon: "fas fa-home" },
@@ -353,22 +372,20 @@ export default {
 
     return {
       sidebarOpen,
-      profileDropdownOpen,
-      plusDropdownOpen,
-      adduserOpen,
-      calendarDropdownOpen,
-      toggleProfileDropdown,
-      togglePlusDropdown,
-      toggleAddUserDropdown,
-      toggleCalendarDropdown,
+      openDropdown,
+      toggleDropdown,
       logout,
       menu,
       isDashboard,
       userStore,
-      modalState, 
-      openModal,  
+      modalState,
+      openModal,
       openModalAddGroup,
-      openModalAddRole 
+      openModalAddRole,
+      openNewFileModal,
+      openNewFolderModal,
+      openNewBatchModal,
+      openNewScannedModal,
     };
   },
 };

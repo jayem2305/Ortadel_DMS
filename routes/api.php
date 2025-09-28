@@ -9,9 +9,11 @@ use App\Http\Controllers\AuthController;
 use App\Models\User;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\FolderController;
 
 // Groups & Users
 Route::apiResource('groups', GroupController::class);
+Route::apiResource('folders', FolderController::class);
 Route::get('users/last-id', [UserController::class, 'getLastUserId']);
 Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
