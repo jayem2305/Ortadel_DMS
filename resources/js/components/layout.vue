@@ -366,7 +366,7 @@ export default {
       { to: "/access", label: "Access Controls", icon: "fa-solid fa-file-alt" },
       { to: "/tags", label: "Tags", icon: "fas fa-tags" },
       { to: "/calendar", label: "Calendar", icon: "fas fa-calendar-alt" },
-      { to: "/audit-logs", label: "Audit Logs", icon: "fas fa-clipboard-list" },
+      { to: "/audit", label: "Audit Logs", icon: "fas fa-clipboard-list" },
       { to: "/recycle-bin", label: "Recycle Bin", icon: "fas fa-trash" },
     ];
 

@@ -266,7 +266,7 @@ async function deleteUser(user) {
   if (confirm(`Are you sure you want to delete ${user.first_name}?`)) {
     try {
       await axios.delete(`http://127.0.0.1:8000/users/${user.id}`)
-      userStore.deleteUser(user.id) // update Pinia store (reactive)
+      userStore.deleteUserFromStore(user.id) // update Pinia store (reactive)
     } catch (err) {
       console.error(err)
       alert('Failed to delete user.')

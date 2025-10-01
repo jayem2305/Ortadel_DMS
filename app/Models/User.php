@@ -18,7 +18,7 @@ class User extends Authenticatable
         'email',
         'password',
         'assigned_color',
-        'role_id',      // changed from 'role' to 'role_id'
+        'role_id',      // FK to roles
         'groups',
         'created_by',
         'last_updated_by',
@@ -33,16 +33,16 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
 
+        // AES-256 encrypted fields (Laravel built-in cast)
         'user_id' => 'encrypted',
         'first_name' => 'encrypted',
         'last_name' => 'encrypted',
         'email' => 'encrypted',
         'assigned_color' => 'encrypted',
-        //'role' => 'encrypted', // removed encryption
         'groups' => 'encrypted:array',
     ];
 
-    // Automatically populate email_hash for uniqueness
+    // 🔹 Automatically compute email_hash for fast lookups
     protected static function booted()
     {
         static::creating(function ($user) {
@@ -56,6 +56,7 @@ class User extends Authenticatable
         });
     }
 
+    // 🔹 Relationships
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -66,7 +67,6 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'last_updated_by');
     }
 
-    // 🔹 Relationship to Role
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');

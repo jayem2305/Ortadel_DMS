@@ -5,6 +5,7 @@ use App\Http\Requests\FolderRequest;
 use App\Models\Folder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use App\Models\AuditLog;
 
 class FolderController extends Controller
 {
@@ -32,6 +33,15 @@ class FolderController extends Controller
             'updated_by' => Auth::id(),
         ]));
 
+        AuditLog::create([
+            'action' => 'Created',
+            'module' => 'FOLDER',
+            'target_user_id' => $folder->id,
+            'description' => "A new Folder ({$folder->name}) was created successfully.",
+            'performed_by' => Auth::id(),
+            'performed_at' => now(),
+        ]);
+
         return response()->json($folder, 201);
     }
 
@@ -43,6 +53,14 @@ class FolderController extends Controller
         $folder->update(array_merge($data, [
             'updated_by' => Auth::id(),
         ]));
+        AuditLog::create([
+            'action' => 'Update',
+            'module' => 'FOLDER',
+            'target_user_id' => $folder->id,
+            'description' => "Folder ({$folder->name}) was updated.",
+            'performed_by' => Auth::id(),
+            'performed_at' => now(),
+        ]);
 
         return response()->json($folder);
     }
@@ -50,12 +68,21 @@ class FolderController extends Controller
     // Show folder
     public function show(Folder $folder): JsonResponse
     {
+
         return response()->json($folder->load('parent', 'children'));
     }
 
     // Delete folder
     public function destroy(Folder $folder): JsonResponse
     {
+        AuditLog::create([
+            'action' => 'Deleted',
+            'module' => 'FOLDER',
+            'target_user_id' => $folder->id,
+            'description' => "Folder ({$folder->name}) was deleted.",
+            'performed_by' => Auth::id(),
+            'performed_at' => now(),
+        ]);
         $folder->delete();
         return response()->json(['message' => 'Folder deleted']);
     }

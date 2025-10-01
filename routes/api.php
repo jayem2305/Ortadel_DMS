@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\AuditLogController;
 
 // Groups & Users
 Route::apiResource('groups', GroupController::class);
@@ -18,6 +19,7 @@ Route::get('users/last-id', [UserController::class, 'getLastUserId']);
 Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('permissions', PermissionController::class);
+Route::get('/audit-logs', [AuditLogController::class, 'index']);
 
 
 // Auth routes

@@ -11,7 +11,7 @@ import tags from "../components/tags.vue";
 import Layout from "../components/layout.vue";
 import Home from "../components/Dashboard.vue";
 import Permissions from "../components/permission.vue";
-import Logs from "../components/logs.vue";
+import Log from "../components/log.vue";
 import Recycle from "../components/recycle.vue";
 import Login from "../components/Login.vue";
 
@@ -30,7 +30,7 @@ const routes = [
       { path: "permission", component: Permissions, meta: { title: "Users Management" } },
       { path: "calendar", component: Calendar, meta: { title: "Calendar" } },
       { path: "tags", component: tags, meta: { title: "Tags" } },
-      { path: "audit-logs", component: Logs, meta: { title: "Audit Logs" } },
+      { path: "audit", component: Log, meta: { title: "Audit Logs" } },
       { path: "recycle-bin", component: Recycle, meta: { title: "Recycle bin" } },
       { path: "settings", component: Settings, meta: { title: "Settings" } },
     ],
