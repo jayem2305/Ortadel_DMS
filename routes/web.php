@@ -9,6 +9,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\FileController;
+
 // Auth route
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/audit-logs', [AuditLogController::class, 'index']);
@@ -20,6 +22,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('permissions', PermissionController::class);
     Route::apiResource('folders', FolderController::class);
+    Route::apiResource('file', FileController::class);
+
 
 });
 
