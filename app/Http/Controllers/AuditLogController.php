@@ -26,6 +26,7 @@ class AuditLogController extends Controller
                     'performed_at' => $log->performed_at, // safe
                     'user' => $log->user ?? ['first_name' => 'Unknown', 'last_name' => ''],
                     'target_user_id' => $log->target_user_id,
+                    'created_at' => $log->created_at ? $log->created_at->toDateTimeString() : null,
                 ];
             });
 

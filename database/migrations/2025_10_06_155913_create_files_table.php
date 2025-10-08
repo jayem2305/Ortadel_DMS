@@ -23,8 +23,8 @@ return new class extends Migration {
                 ->onDelete('set null'); // encrypted
 
             // JSON fields for reviewers/approvers
-            $table->json('assign_reviewer')->nullable();   // encrypted
-            $table->json('assign_approver')->nullable();   // encrypted
+            $table->text('assign_reviewer')->nullable();   // changed from json to text
+            $table->text('assign_approver')->nullable();   // encrypted
 
             $table->boolean('locked')->default(0);         // optional, unencrypted
 
@@ -34,7 +34,7 @@ return new class extends Migration {
             $table->string('file', 512)->nullable();       // encrypted
             $table->string('file_type', 512)->nullable();  // encrypted
             $table->integer('file_size')->nullable();      // encrypted
-
+            $table->string('status', 50)->default('Released'); // new status field
             $table->timestamps();
         });
     }
