@@ -1,11 +1,11 @@
 <template>
-  <main class="overflow-y-auto p-6">
+  <main class="overflow-y-auto ">
     <div class="bg-white rounded-lg shadow p-6 space-y-6">
 
       <!-- 🔹 Top Statistics -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Files (mocked) -->
-       <div class="p-4 bg-blue-50 rounded-lg shadow hover:shadow-md transition">
+        <!-- Files -->
+        <div class="p-4 bg-blue-50 rounded-lg shadow hover:shadow-md transition">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-sm text-gray-600">Files</h3>
@@ -18,7 +18,7 @@
           </div>
         </div>
 
-        <!-- Folders (API) -->
+        <!-- Folders -->
         <div class="p-4 bg-green-50 rounded-lg shadow hover:shadow-md transition">
           <div class="flex items-center justify-between">
             <div>
@@ -32,7 +32,7 @@
           </div>
         </div>
 
-        <!-- Users (API) -->
+        <!-- Users -->
         <div class="p-4 bg-yellow-50 rounded-lg shadow hover:shadow-md transition">
           <div class="flex items-center justify-between">
             <div>
@@ -46,12 +46,12 @@
           </div>
         </div>
 
-        <!-- Storage (mocked) -->
+        <!-- Storage -->
         <div class="p-4 bg-red-50 rounded-lg shadow hover:shadow-md transition">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-sm text-gray-600">Storage</h3>
-              <p class="text-2xl font-bold text-red-700">{{ formattedStorage  }}</p>
+              <p class="text-2xl font-bold text-red-700">{{ formattedStorage }}</p>
               <span
                 class="text-green-600 text-xs"
                 :class="{
@@ -59,14 +59,13 @@
                   'text-yellow-600': usedPercent > 75 && usedPercent <= 90
                 }"
               >
-                {{ usedPercent  }}% used of 512 GB
+                {{ usedPercent }}% used of 512 GB
               </span>
             </div>
             <i class="fa-solid fa-hdd text-red-600 text-3xl"></i>
           </div>
         </div>
       </div>
-
       <!-- 🔹 Charts Section -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Requests Over Time -->
@@ -85,169 +84,172 @@
           </div>
         </div>
 
-<!-- Recent Activities -->
-<div class="p-4 bg-white rounded-lg shadow flex flex-col">
-  <h3 class="text-md font-semibold text-gray-700 mb-3">
-    Recent Activities
-  </h3>
-
-  <!-- Scrollable List -->
-  <ul
-    class="divide-y divide-gray-100 text-sm overflow-y-auto pr-2"
-    style="max-height: 300px;"
-  >
-    <li
-      v-for="log in recentLogs"
-      :key="log.id"
-      class="py-3 flex items-start space-x-3"
-    >
-      <!-- Icon Badge -->
-      <div>
-        <span
-          v-if="log.action.toLowerCase().includes('create')"
-          class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600"
-        >
-          <ILucideFilePlus class="w-3.5 h-3.5" />
-        </span>
-
-        <span
-          v-else-if="log.action.toLowerCase().includes('update')"
-          class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600"
-        >
-          <ILucidePencil class="w-3.5 h-3.5" />
-        </span>
-
-        <span
-          v-else-if="log.action.toLowerCase().includes('delete')"
-          class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600"
-        >
-          <ILucideTrash2 class="w-3.5 h-3.5" />
-        </span>
-
-        <span
-          v-else
-          class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600"
-        >
-          <ILucideInfo class="w-3.5 h-3.5" />
-        </span>
+        <!-- Recent Activities -->
+        <div class="p-4 bg-white rounded-lg shadow flex flex-col">
+          <h3 class="text-md font-semibold text-gray-700 mb-3">Recent Activities</h3>
+          <ul class="divide-y divide-gray-100 text-sm overflow-y-auto pr-2" style="max-height: 300px;">
+            <li v-for="log in recentLogs" :key="log.id" class="py-3 flex items-start space-x-3">
+              <div>
+                <span v-if="log.action.toLowerCase().includes('create')" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600">
+                  <ILucideFilePlus class="w-3.5 h-3.5" />
+                </span>
+                <span v-else-if="log.action.toLowerCase().includes('update')" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600">
+                  <ILucidePencil class="w-3.5 h-3.5" />
+                </span>
+                <span v-else-if="log.action.toLowerCase().includes('delete')" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600">
+                  <ILucideTrash2 class="w-3.5 h-3.5" />
+                </span>
+                <span v-else class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600">
+                  <ILucideInfo class="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-gray-700">{{ log.description }}</p>
+                <p class="text-gray-500 text-xs mt-1">
+                  by {{ log.user?.first_name }} {{ log.user?.last_name }} ·
+                  <span class="text-gray-400">{{ new Date(log.created_at).toLocaleString() }}</span>
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
+      <!-- 🔹 Notifications / Alerts -->
+    <div class="p-6 bg-white rounded-2xl shadow"> 
+      <div class="p-4 bg-white rounded-xl ">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Notifications</h3>
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Pending -->
+          <div class="relative bg-yellow-50 p-5 rounded-xl flex flex-col items-center justify-center hover:shadow-xl transition duration-300">
+            <span class="absolute top-2 right-2 bg-yellow-200 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">Pending</span>
+            <i class="fa-solid fa-clock text-yellow-600 text-4xl mb-3 animate-pulse"></i>
+            <p class="text-3xl font-bold text-yellow-700">{{ pendingFiles }}</p>
+            <p class="text-sm text-yellow-600 mt-1">Files For approval</p>
+          </div>
 
-      <!-- Log Content -->
-      <div class="flex-1 min-w-0">
-        <p class="text-gray-700">
-          {{ log.description }}
-        </p>
-        <p class="text-gray-500 text-xs mt-1">
-          by {{ log.user?.first_name }} {{ log.user?.last_name }} ·
-          <span class="text-gray-400">
-            {{ new Date(log.created_at).toLocaleString() }}
-          </span>
-        </p>
-      </div>
-    </li>
-  </ul>
-</div>
+          <!-- Expired -->
+          <div class="relative bg-red-50 p-5 rounded-xl flex flex-col items-center justify-center hover:shadow-xl transition duration-300">
+            <span class="absolute top-2 right-2 bg-red-200 text-red-800 text-xs font-semibold px-2 py-1 rounded-full">Expired</span>
+            <i class="fa-solid fa-exclamation-triangle text-red-600 text-4xl mb-3 animate-pulse"></i>
+            <p class="text-3xl font-bold text-red-700">{{ expiredRequests }}</p>
+            <p class="text-sm text-red-600 mt-1">Expired Files</p>
+          </div>
 
-      </div>
-
-      <!-- 🔹 Additional Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Document Trends -->
-        <div class="p-4 bg-white rounded-lg shadow">
-          <h3 class="text-md font-semibold text-gray-700 mb-2">Document Creation Trends</h3>
-          <div class="relative h-64 w-full">
-            <canvas id="docTrendsChart"></canvas>
+          <!-- Upcoming Document Requests -->
+          <div class="relative bg-blue-50 p-5 rounded-xl flex flex-col items-center justify-center hover:shadow-xl transition duration-300">
+            <span class="absolute top-2 right-2 bg-blue-200 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">Due Soon</span>
+            <i class="fa-solid fa-calendar-days text-blue-600 text-4xl mb-3 animate-bounce"></i>
+            <p class="text-3xl font-bold text-blue-700">{{ upcomingDeadlines }}</p>
+            <p class="text-sm text-blue-600 mt-1">Due in next 7 days</p>
           </div>
         </div>
+      </div>
+      <!-- 🔹 Pending & Upcoming Documents -->
+        <div class="overflow-x-auto">
+          <div>
+            <!-- 🔹 Search Bar -->
+            <div class="mb-4">
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search documents..."
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
 
+            <!-- 🔹 Scrollable Table -->
+            <div class="max-h-96 overflow-y-auto border border-gray-200 rounded">
+              <table class="w-full text-sm text-left border-collapse">
+                <thead class="bg-gradient-to-r from-blue-500 to-indigo-500 sticky top-0 z-10">
+                  <tr>
+                    <th @click="sortBy('name')" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wide cursor-pointer">
+                      Document Name <span v-if="sortField === 'name'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th @click="sortBy('file_type')" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wide cursor-pointer">
+                      Document Type <span v-if="sortField === 'file_type'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th @click="sortBy('created_at')" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wide cursor-pointer">
+                      Created At <span v-if="sortField === 'created_at'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th @click="sortBy('expiration_date')" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wide cursor-pointer">
+                      Expiration Date <span v-if="sortField === 'expiration_date'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th @click="sortBy('status')" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wide cursor-pointer">
+                      Status <span v-if="sortField === 'status'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr
+                    v-for="file in filteredAndSortedFiles"
+                    :key="file.id"
+                    :class="{
+                      'bg-yellow-100': file.isPending,
+                      'bg-blue-100': file.isUpcoming,
+                      'bg-red-100': file.isExpired
+                    }"
+                    class="transition"
+                  >
+                    <td class="px-4 py-2">{{ file.name }}</td>
+                    <td class="px-4 py-2">{{ file.file_type }}</td>
+                    <td class="px-4 py-2">{{ new Date(file.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</td>
+                    <td class="px-4 py-2">{{ new Date(file.expiration_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</td>
+                    <td class="px-4 py-2">
+                      <span
+                        class="px-3 py-1 rounded-full text-xs font-semibold"
+                        :class="{
+                          'bg-yellow-100 text-yellow-700': file.isPending,
+                          'bg-blue-100 text-blue-700': file.isUpcoming,
+                          'bg-red-100 text-red-700': file.isExpired
+                        }"
+                      >
+                        {{ file.displayStatus }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="filteredAndSortedFiles.length === 0">
+                    <td colspan="5" class="text-center text-gray-500 py-4">No documents found</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 🔹 Additional Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Document Creation Trends -->
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-center bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-3">
+          <h3 class="text-white font-semibold text-lg">Document Creation Trends</h3>
+          <select
+            v-model="selectedPeriod"
+            class="bg-white text-gray-700 text-sm rounded-full px-3 py-1 focus:outline-none shadow-sm"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <!-- Chart Area -->
+        <div class="p-6 bg-gray-50">
+          <canvas id="docTrendsChart" class="w-full h-64"></canvas>
+        </div>
+      </div>
         <!-- Storage Utilization -->
-       <div class="p-4 bg-white rounded-lg shadow">
+        <div class="p-4 bg-white rounded-lg shadow">
           <h3 class="text-md font-semibold text-gray-700 mb-2">Storage Utilization</h3>
           <div class="relative h-64 w-full">
             <canvas id="storageChart"></canvas>
           </div>
         </div>
-        </div>
-
-      <!-- 🔹 System Performance -->
-      <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="text-md font-semibold text-gray-700 mb-4">System Performance</h3>
-        <div class="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div class="relative h-32 w-full">
-              <canvas id="cpuChart"></canvas>
-            </div>
-            <p class="text-sm mt-2 font-medium text-gray-600">CPU</p>
-          </div>
-          <div>
-            <div class="relative h-32 w-full">
-              <canvas id="memoryChart"></canvas>
-            </div>
-            <p class="text-sm mt-2 font-medium text-gray-600">Memory</p>
-          </div>
-          <div>
-            <div class="relative h-32 w-full">
-              <canvas id="diskChart"></canvas>
-            </div>
-            <p class="text-sm mt-2 font-medium text-gray-600">Disk</p>
-          </div>
-        </div>
       </div>
 
-      <!-- 🔹 Latest Requests Table -->
-      <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="text-md font-semibold text-gray-700 mb-2">Latest Document Requests</h3>
-        <div class="overflow-y-auto max-h-64">
-          <table class="w-full text-sm text-left border-collapse">
-            <thead>
-              <tr class="bg-gray-100 text-gray-700">
-                <th class="px-4 py-2 border">Resident Name</th>
-                <th class="px-4 py-2 border">Document Type</th>
-                <th class="px-4 py-2 border">Date Requested</th>
-                <th class="px-4 py-2 border">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="hover:bg-gray-50">
-                <td class="px-4 py-2 border">Juan dela Cruz</td>
-                <td class="px-4 py-2 border">Barangay Clearance</td>
-                <td class="px-4 py-2 border">2025-09-20</td>
-                <td class="px-4 py-2 border">
-                  <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">Pending</span>
-                </td>
-              </tr>
-              <tr class="hover:bg-gray-50">
-                <td class="px-4 py-2 border">Maria Santos</td>
-                <td class="px-4 py-2 border">Certificate of Indigency</td>
-                <td class="px-4 py-2 border">2025-09-19</td>
-                <td class="px-4 py-2 border">
-                  <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Approved</span>
-                </td>
-              </tr>
-              <tr class="hover:bg-gray-50">
-                <td class="px-4 py-2 border">Pedro Reyes</td>
-                <td class="px-4 py-2 border">Residency Certificate</td>
-                <td class="px-4 py-2 border">2025-09-18</td>
-                <td class="px-4 py-2 border">
-                  <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Declined</span>
-                </td>
-              </tr>
-              <tr class="hover:bg-gray-50">
-                <td class="px-4 py-2 border">Ana Lopez</td>
-                <td class="px-4 py-2 border">Barangay Clearance</td>
-                <td class="px-4 py-2 border">2025-09-17</td>
-                <td class="px-4 py-2 border">
-                  <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Approved</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </main>
 </template>
-
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
@@ -262,7 +264,6 @@ import {
 
 let requestsChart, docTrendsChart, storageChart, cpuChart, memoryChart, diskChart;
 
-// 🔹 State
 const filesCount = ref(0);
 const filesChange = ref(0);
 const usersCount = ref(0);
@@ -271,6 +272,16 @@ const usersChange = ref(0);
 const foldersChange = ref(0);
 const recentLogs = ref([]);
 const files = ref([]);
+const pendingFiles = ref(0);
+const expiredRequests = ref(0);
+const upcomingDeadlines = ref(0);
+const sortField = ref('');
+const sortOrder = ref('asc');
+const selectedPeriod = ref('monthly'); // daily, weekly, monthly
+const requestTrendData = ref({ daily: {}, weekly: {}, monthly: {} });
+const searchQuery = ref('');
+
+const totalStorage = 512 * 1024 ** 3; // 512 GB in bytes
 
 function parseSize(sizeStr) {
   if (!sizeStr) return 0;
@@ -280,159 +291,341 @@ function parseSize(sizeStr) {
   if (unit.includes("GB")) return num * 1024 ** 3;
   if (unit.includes("MB")) return num * 1024 ** 2;
   if (unit.includes("KB")) return num * 1024;
-  if (unit.includes("BYTE")) return num; // handles "1 byte" or "123 bytes"
+  if (unit.includes("BYTE")) return num;
   return 0;
 }
-// 🔹 Storage info
-const totalStorage = 512 * 1024 * 1024 * 1024; // 512 GB in bytes
 
 const totalStorageUsed = computed(() => {
-  if (!Array.isArray(files.value)) return 0;
   return files.value.reduce((sum, f) => sum + parseSize(f.file_size), 0);
 });
 
-
-
-// ✅ Auto format depending on size (B / KB / MB / GB)
 const formattedStorage = computed(() => {
   const bytes = totalStorageUsed.value;
-  if (bytes >= 1024 ** 3) {
-    return (bytes / (1024 ** 3)).toFixed(2) + " GB";
-  } else if (bytes >= 1024 ** 2) {
-    return (bytes / (1024 ** 2)).toFixed(2) + " MB";
-  } else if (bytes >= 1024) {
-    return (bytes / 1024).toFixed(2) + " KB";
-  } else {
-    return bytes + " B";
-  }
+  if (bytes >= 1024 ** 3) return (bytes / (1024 ** 3)).toFixed(2) + " GB";
+  if (bytes >= 1024 ** 2) return (bytes / (1024 ** 2)).toFixed(2) + " MB";
+  if (bytes >= 1024) return (bytes / 1024).toFixed(2) + " KB";
+  return bytes + " B";
 });
 
-const usedPercent = computed(() =>
-  ((totalStorageUsed.value / totalStorage) * 100).toFixed(2)
-);
+const usedPercent = computed(() => ((totalStorageUsed.value / totalStorage) * 100).toFixed(2));
+function isUrgent(expirationDateStr) {
+  const now = new Date();
+  const threeDaysLater = new Date();
+  threeDaysLater.setDate(now.getDate() + 3);
+  const expirationDate = new Date(expirationDateStr);
+  return expirationDate >= now && expirationDate <= threeDaysLater;
+}
+
+const filteredFiles = computed(() => {
+  const now = new Date();
+  const sevenDaysLater = new Date();
+  sevenDaysLater.setDate(now.getDate() + 7);
+
+  return files.value.map(f => {
+    const expiration = new Date(f.expiration_date);
+    let displayStatus = f.status;
+
+    if (f.status.toLowerCase() === 'pending' && expiration > now) {
+      displayStatus = 'Pending';
+    } else if (expiration < now || f.status.toLowerCase() === 'expired') {
+      displayStatus = 'Expired';
+    } else if (expiration >= now && expiration <= sevenDaysLater) {
+      displayStatus = 'Due Soon';
+    }
+
+    return {
+      ...f,
+      displayStatus,
+      isPending: displayStatus === 'Pending',
+      isExpired: displayStatus === 'Expired',
+      isUpcoming: displayStatus === 'Due Soon'
+    };
+  }).filter(f => f.isPending || f.isUpcoming || f.isExpired); // only show relevant files
+});
+const filteredAndSortedFiles = computed(() => {
+  const search = searchQuery.value.toLowerCase();
+
+  return sortedFiles.value.filter(file => {
+    return (
+      file.name.toLowerCase().includes(search) ||
+      file.file_type.toLowerCase().includes(search) ||
+      file.displayStatus.toLowerCase().includes(search)
+    );
+  });
+});
+const sortedFiles = computed(() => {
+  if (!sortField.value) return filteredFiles.value;
+
+  return [...filteredFiles.value].sort((a, b) => {
+    let aValue = a[sortField.value];
+    let bValue = b[sortField.value];
+
+    // If the field is a date, convert to Date objects
+    if (sortField.value === 'created_at' || sortField.value === 'expiration_date') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    }
+
+    if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+});
+function sortBy(field) {
+  if (sortField.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortField.value = field;
+    sortOrder.value = 'asc';
+  }
+}
+
 
 function calculatePercentage(current, last) {
   if (!last || last === 0) return 0;
   return ((current - last) / last) * 100;
 }
+function updateNotifications(filesList) {
+  const now = new Date();
 
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleString();
+  // Pending: status = 'pending'
+  pendingFiles.value = filesList.filter(f => f.status.toLowerCase() === 'pending').length;
+
+  // Expired: status = 'expired' OR due_date before today
+  expiredRequests.value = filesList.filter(f => 
+    f.status.toLowerCase() === 'expired' || new Date(f.due_date) < now
+  ).length;
+
+  // Upcoming deadlines: due within next 7 days
+  const sevenDaysLater = new Date();
+  sevenDaysLater.setDate(now.getDate() + 7);
+
+  upcomingDeadlines.value = filesList.filter(f => {
+    const dueDate = new Date(f.due_date);
+    return dueDate >= now && dueDate <= sevenDaysLater && f.status.toLowerCase() !== 'expired';
+  }).length;
 }
 
+// 🔹 Fetch data
 onMounted(async () => {
   try {
-    // 🔹 Files
     const resFiles = await axios.get("http://127.0.0.1:8000/file");
-    files.value = Array.isArray(resFiles.data)
-      ? resFiles.data
-      : resFiles.data.data || [];
-console.log("Fetched files:", files.value);
+    files.value = Array.isArray(resFiles.data) ? resFiles.data : resFiles.data.data || [];
+    // Update notification counts based on status/due_date
+    updateNotifications(files.value);
     const now = new Date();
-    const thisMonthFiles = files.value.filter(
-      (f) => new Date(f.created_at).getMonth() === now.getMonth()
-    ).length;
-    const lastMonthFiles = files.value.filter(
-      (f) => new Date(f.created_at).getMonth() === now.getMonth() - 1
-    ).length;
+    const thisMonthFiles = files.value.filter(f => new Date(f.created_at).getMonth() === now.getMonth()).length;
+    const lastMonthFiles = files.value.filter(f => new Date(f.created_at).getMonth() === now.getMonth()-1).length;
     filesCount.value = thisMonthFiles;
     filesChange.value = calculatePercentage(thisMonthFiles, lastMonthFiles);
 
-    // 🔹 Users
     const resUsers = await axios.get("http://127.0.0.1:8000/users");
     const users = resUsers.data;
-    const thisMonthUsers = users.filter(
-      (u) => new Date(u.created_at).getMonth() === now.getMonth()
-    ).length;
-    const lastMonthUsers = users.filter(
-      (u) => new Date(u.created_at).getMonth() === now.getMonth() - 1
-    ).length;
+    const thisMonthUsers = users.filter(u => new Date(u.created_at).getMonth() === now.getMonth()).length;
+    const lastMonthUsers = users.filter(u => new Date(u.created_at).getMonth() === now.getMonth()-1).length;
     usersCount.value = thisMonthUsers;
     usersChange.value = calculatePercentage(thisMonthUsers, lastMonthUsers);
 
-    // 🔹 Folders
     const resFolders = await axios.get("http://127.0.0.1:8000/folders");
     const folders = resFolders.data;
-    const thisMonthFolders = folders.filter(
-      (f) => new Date(f.created_at).getMonth() === now.getMonth()
-    ).length;
-    const lastMonthFolders = folders.filter(
-      (f) => new Date(f.created_at).getMonth() === now.getMonth() - 1
-    ).length;
+    const thisMonthFolders = folders.filter(f => new Date(f.created_at).getMonth() === now.getMonth()).length;
+    const lastMonthFolders = folders.filter(f => new Date(f.created_at).getMonth() === now.getMonth()-1).length;
     foldersCount.value = thisMonthFolders;
     foldersChange.value = calculatePercentage(thisMonthFolders, lastMonthFolders);
 
-    // 🔹 Audit Logs
     const resLogs = await axios.get("http://127.0.0.1:8000/audit-logs");
     recentLogs.value = resLogs.data;
 
-    // 🔹 Debug log
-    console.log("Files loaded:", files.value);
-    console.log(
-      "Total storage used (bytes):",
-      totalStorageUsed.value,
-      "Formatted:",
-      formattedStorage.value
-    );
-
-    // 🔹 Initialize charts
+    calculateRequestTrends();
     initCharts();
     updateStorageChart();
-    console.log("Sample file data:", files.value[0]);
 
   } catch (e) {
-    console.error("Error fetching stats:", e);
+    console.error("Error fetching data:", e);
   }
 });
 
-// 🧠 Auto-update chart when files or size changes
-watch(totalStorageUsed, () => updateStorageChart());
+watch([files, selectedPeriod], () => {
+  calculateRequestTrends();
+  initDocTrendsChart();
+});
+watch(files, (newFiles) => {
+  updateNotifications(newFiles);
+});
 
-function initCharts() {
-  requestsChart = new Chart(document.getElementById("requestsChart"), {
-    type: "line",
-    data: {
-      labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-      datasets: [
-        { label: "Approved", data: [120,150,180,140,200,220,210,230,190,250,270,300],
-          borderColor: "#10B981", backgroundColor: "rgba(16,185,129,0.2)", fill: true, tension: 0.3 },
-        { label: "Pending", data: [30,25,40,35,50,45,55,60,50,65,70,80],
-          borderColor: "#F59E0B", backgroundColor: "rgba(245,158,11,0.2)", fill: true, tension: 0.3 },
-        { label: "Declined", data: [5,10,8,12,7,6,9,10,8,11,9,12],
-          borderColor: "#EF4444", backgroundColor: "rgba(239,68,68,0.2)", fill: true, tension: 0.3 }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+// 🔹 Document Trends
+function calculateRequestTrends() {
+  const now = new Date();
+  const filesData = files.value;
+
+  const formatDateKey = (date, period) => {
+    if (period === 'daily') return date.toISOString().split('T')[0];
+    if (period === 'weekly') {
+      const start = new Date(date);
+      start.setDate(date.getDate() - date.getDay());
+      return start.toISOString().split('T')[0];
+    }
+    if (period === 'monthly') return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}`;
+  };
+
+  ['daily','weekly','monthly'].forEach(period => {
+    const labelsSet = new Set();
+    const released = {}, pending = {}, expired = {};
+
+    filesData.forEach(f => {
+      const key = formatDateKey(new Date(f.created_at), period);
+      labelsSet.add(key);
+      if(f.status.toLowerCase() === 'released') released[key] = (released[key]||0)+1;
+      if(f.status.toLowerCase() === 'pending') pending[key] = (pending[key]||0)+1;
+      if(f.status.toLowerCase() === 'expired') expired[key] = (expired[key]||0)+1;
+    });
+
+    const labels = Array.from(labelsSet).sort();
+    const Released = labels.map(l => released[l]||0);
+    const Pending = labels.map(l => pending[l]||0);
+    const Expired = labels.map(l => expired[l]||0);
+
+    requestTrendData.value[period] = { labels, Released, Pending, Expired };
   });
+}
 
+function initDocTrendsChart() {
+  const data = requestTrendData.value[selectedPeriod.value];
+  if(docTrendsChart) docTrendsChart.destroy();
   docTrendsChart = new Chart(document.getElementById("docTrendsChart"), {
     type: "bar",
-    data: { labels: ["Q1","Q2","Q3","Q4"], datasets: [{ label: "Documents", data: [300, 450, 600, 750], backgroundColor: "#3B82F6" }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: "Released", data: data.Released, backgroundColor: "#10B981" },
+        { label: "Pending", data: data.Pending, backgroundColor: "#F59E0B" },
+        { label: "Expired", data: data.Expired, backgroundColor: "#EF4444" }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top" } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
   });
-
-  const doughnutOptions = { maintainAspectRatio: false, cutout: "70%", plugins: { legend: { display: false } } };
-  cpuChart = new Chart(document.getElementById("cpuChart"), { type: "doughnut", data: { labels: ["Used", "Free"], datasets: [{ data: [65, 35], backgroundColor: ["#EF4444", "#E5E7EB"] }] }, options: doughnutOptions });
-  memoryChart = new Chart(document.getElementById("memoryChart"), { type: "doughnut", data: { labels: ["Used", "Free"], datasets: [{ data: [70, 30], backgroundColor: ["#F59E0B", "#E5E7EB"] }] }, options: doughnutOptions });
-  diskChart = new Chart(document.getElementById("diskChart"), { type: "doughnut", data: { labels: ["Used", "Free"], datasets: [{ data: [55, 45], backgroundColor: ["#10B981", "#E5E7EB"] }] }, options: doughnutOptions });
 }
+
+async function initCharts() {
+  try {
+    // Fetch files from API
+    const resFiles = await axios.get("http://127.0.0.1:8000/file");
+    const filesData = Array.isArray(resFiles.data) ? resFiles.data : resFiles.data.data || [];
+
+    // Process data: group counts by month
+    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const released = new Array(12).fill(0);
+    const pending = new Array(12).fill(0);
+    const expired = new Array(12).fill(0);
+
+    filesData.forEach(f => {
+      const date = new Date(f.created_at);
+      const monthIndex = date.getMonth(); // 0 = Jan, 11 = Dec
+      const status = f.status.toLowerCase();
+
+    if(status === 'released') released[monthIndex]++;
+    else if(status === 'pending') pending[monthIndex]++;
+    else if(status === 'expired') expired[monthIndex]++;
+    });
+
+    // Initialize Chart.js
+    if(requestsChart) requestsChart.destroy(); // destroy if already exists
+    requestsChart = new Chart(document.getElementById("requestsChart"), {
+      type: "line",
+      data: {
+        labels: monthLabels,
+        datasets: [
+          { label: "Released", data: released, borderColor: "#10B981", backgroundColor: "rgba(16,185,129,0.2)", fill: true, tension: 0.3 },
+          { label: "Pending", data: pending, borderColor: "#F59E0B", backgroundColor: "rgba(245,158,11,0.2)", fill: true, tension: 0.3 },
+          { label: "Expired", data: expired, borderColor: "#EF4444", backgroundColor: "rgba(239,68,68,0.2)", fill: true, tension: 0.3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } }
+    });
+
+  } catch (e) {
+    console.error("Error initializing requests chart:", e);
+  }
+}
+
 
 function updateStorageChart() {
   const usedGB = (totalStorageUsed.value / (1024 ** 3)).toFixed(2);
   const freeGB = (512 - usedGB).toFixed(2);
+  const usedPercentValue = ((usedGB / 512) * 100).toFixed(2);
+
   if (storageChart) storageChart.destroy();
+
   storageChart = new Chart(document.getElementById("storageChart"), {
-    type: "bar",
+    type: "doughnut",
     data: {
       labels: ["Used", "Free"],
       datasets: [
-        { label: "Storage (GB)", data: [usedGB, freeGB], backgroundColor: ["#EF4444", "#10B981"] }
+        {
+          data: [usedGB, freeGB],
+          backgroundColor: ["#EF4444", "#10B981"],
+          hoverOffset: 10,
+        }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "70%", // makes it a donut
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            font: {
+              size: 14
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.label}: ${context.raw} GB`;
+            }
+          }
+        },
+        // center text plugin
+        beforeDraw: function(chart) {
+          const { ctx, width, height } = chart;
+          ctx.restore();
+          const fontSize = (height / 114).toFixed(2);
+          ctx.font = `${fontSize}em sans-serif`;
+          ctx.textBaseline = "middle";
+          const text = usedPercentValue + "%";
+          const textX = Math.round((width - ctx.measureText(text).width) / 2);
+          const textY = height / 2;
+          ctx.fillText(text, textX, textY);
+          ctx.save();
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      beforeDraw(chart) {
+        const { ctx, width, height } = chart;
+        ctx.restore();
+        const fontSize = (height / 114).toFixed(2);
+        ctx.font = `${fontSize}em sans-serif`;
+        ctx.textBaseline = "middle";
+        const text = usedPercentValue + "%";
+        const textX = Math.round((width - ctx.measureText(text).width) / 2);
+        const textY = height / 2;
+        ctx.fillText(text, textX, textY);
+        ctx.save();
+      }
+    }]
   });
 }
+
 
 function exportChart(id) {
   const chart = Chart.getChart(id);
@@ -441,5 +634,31 @@ function exportChart(id) {
   link.download = `${id}.png`;
   link.click();
 }
+// Function to call the API
+/*async function updateExpiredFiles() {
+  try {
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const token = tokenMeta ? tokenMeta.getAttribute('content') : '';
+
+    const response = await fetch('/update-expired-files', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'X-CSRF-TOKEN': token }),
+      },
+    });
+
+    const data = await response.json();
+    console.log(data.message);
+  } catch (err) {
+    console.error('Error updating expired files:', err);
+  }
+}
+
+
+// Call immediately
+updateExpiredFiles();
+
+// Call every 60 seconds
+setInterval(updateExpiredFiles, 60000);*/
 </script>
-```

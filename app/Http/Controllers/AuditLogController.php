@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Carbon\Carbon;
+use App\Models\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Console\Command;
 class AuditLogController extends Controller
 {
     /**
@@ -13,6 +16,29 @@ class AuditLogController extends Controller
      */
     public function index()
     {
+        $today = Carbon::today();
+
+        // Check if there are any files to update first
+        $files = File::where('status', '!=', 'Expired')
+            ->whereDate('expiration_date', '<=', $today)
+            ->get();
+
+        if ($files->isNotEmpty()) {
+            foreach ($files as $file) {
+                $file->status = 'Expired';
+                $file->save();
+
+                AuditLog::create([
+                    'action' => 'Expired',
+                    'module' => 'FILE',
+                    'target_user_id' => $file->id,
+                    'description' => "SYSTEM: File {$file->name} has been marked as Expired.",
+                    'performed_by' => 1, // system
+                    'performed_at' => now(),
+                ]);
+            }
+        }
+
         $logs = AuditLog::with('user')
             ->orderBy('performed_at', 'desc')
             ->limit(10)

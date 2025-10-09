@@ -9,10 +9,41 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Intervention\Image\ImageManager;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Console\Command;
 class FileController extends Controller
 {
+    public function updateExpiredFilesApi()
+    {
+        $today = Carbon::today();
+
+        $files = File::where('status', '!=', 'Expired')
+            ->whereDate('expiration_date', '<=', $today)
+            ->get();
+
+        foreach ($files as $file) {
+            $file->status = 'Expired';
+            $file->save();
+
+            AuditLog::create([
+                'action' => 'Update',
+                'module' => 'FILE',
+                'target_user_id' => $file->id,
+                'description' => "SYSTEM: File {$file->name} has been marked as Expired.",
+                'performed_by' => 1, // system
+                'performed_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'message' => count($files) . ' file(s) updated to Expired.',
+        ]);
+    }
+
     public function index()
     {
+
         $files = File::all()->map(function ($file) {
             // Convert file size to a readable format
             $size = $file->file_size ?? 0;
@@ -39,6 +70,7 @@ class FileController extends Controller
                 'file_size' => $fileSize,
                 'status' => $file->status ?? 'Released',
                 'created_at' => $file->created_at ? $file->created_at->toDateTimeString() : null,
+                'expiration_date' => $file->expiration_date ? $file->expiration_date->toDateTimeString() : null,
                 'updated_at' => $file->updated_at ? $file->updated_at->toDateTimeString() : null,
             ];
         });
@@ -286,7 +318,13 @@ class FileController extends Controller
         // Determine file status
         $hasReviewers = !empty($assignReviewer['groups']) || !empty($assignReviewer['individual']);
         $hasApprovers = !empty($assignApprover['groups']) || !empty($assignApprover['individual']);
-        $data['status'] = ($hasReviewers || $hasApprovers) ? 'Pending' : 'Released';
+        $today = Carbon::today();
+        $expiration = isset($data['expiration_date']) ? Carbon::parse($data['expiration_date']) : null;
+        if ($expiration && $expiration->lessThanOrEqualTo($today)) {
+            $data['status'] = 'Expired';
+        } else {
+            $data['status'] = ($hasReviewers || $hasApprovers) ? 'Pending' : 'Released';
+        }
 
         // Create record
         $fileRecord = File::create($data);

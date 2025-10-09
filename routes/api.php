@@ -12,6 +12,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\BatchFileUploadController;
 
 
 // Groups & Users
@@ -23,6 +24,7 @@ Route::apiResource('users', UserController::class);
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('permissions', PermissionController::class);
 Route::get('/audit-logs', [AuditLogController::class, 'index']);
+Route::apiResource('batchfile', BatchFileUploadController::class);
 
 
 // Auth routes

@@ -33,37 +33,45 @@
               <td class="px-4 py-3 text-sm text-gray-700">{{ log.user?.first_name }} {{ log.user?.last_name }}</td>
               <td class="px-4 py-3 text-sm text-gray-700">{{ log.module }}</td>
 
-              <!-- Action with icon badge -->
-              <td class="px-4 py-3 text-sm">
-                <span
-                  v-if="log.action.toLowerCase().includes('create')"
-                  class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-green-100 text-green-700 space-x-1"
-                >
-                  <ILucideFilePlus class="w-3.5 h-3.5" />
-                  <span>Created</span>
-                </span>
-                <span
-                  v-else-if="log.action.toLowerCase().includes('update')"
-                  class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-blue-100 text-blue-700 space-x-1"
-                >
-                  <ILucidePencil class="w-3.5 h-3.5" />
-                  <span>Updated</span>
-                </span>
-                <span
-                  v-else-if="log.action.toLowerCase().includes('delete')"
-                  class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-red-100 text-red-700 space-x-1"
-                >
-                  <ILucideTrash2 class="w-3.5 h-3.5" />
-                  <span>Deleted</span>
-                </span>
-                <span
-                  v-else
-                  class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 text-gray-700 space-x-1"
-                >
-                  <ILucideInfo class="w-3.5 h-3.5" />
-                  <span>Other</span>
-                </span>
-              </td>
+          <!-- Action with icon badge -->
+          <td class="px-4 py-3 text-sm">
+            <span
+              v-if="log.action.toLowerCase().includes('create')"
+              class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-green-100 text-green-700 space-x-1"
+            >
+              <ILucideFilePlus class="w-3.5 h-3.5" />
+              <span>Created</span>
+            </span>
+            <span
+              v-else-if="log.action.toLowerCase().includes('update')"
+              class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-blue-100 text-blue-700 space-x-1"
+            >
+              <ILucidePencil class="w-3.5 h-3.5" />
+              <span>Updated</span>
+            </span>
+            <span
+              v-else-if="log.action.toLowerCase().includes('delete')"
+              class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-red-100 text-red-700 space-x-1"
+            >
+              <ILucideTrash2 class="w-3.5 h-3.5" />
+              <span>Deleted</span>
+            </span>
+            <span
+              v-else-if="log.action.toLowerCase().includes('expired')"
+              class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 space-x-1"
+            >
+              <ILucideInfo class="w-3.5 h-3.5" />
+              <span>Expired</span>
+            </span>
+            <span
+              v-else
+              class="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 text-gray-700 space-x-1"
+            >
+              <ILucideInfo class="w-3.5 h-3.5" />
+              <span>Other</span>
+            </span>
+          </td>
+
 
               <!-- Target entity -->
               <td class="px-4 py-3 text-sm text-gray-700">{{ log.targetName || '-' }}</td>

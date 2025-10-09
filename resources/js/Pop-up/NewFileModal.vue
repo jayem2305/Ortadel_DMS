@@ -160,7 +160,6 @@ import { reactive, ref, onMounted, computed  } from "vue";
 import axios from "axios";
 import { modalState } from "../stores/modal";
 
-// ✅ Reusable dropdown component
 const MultiSelect = {
   props: ["label", "options", "modelValue"],
   emits: ["update:modelValue"],
@@ -254,11 +253,17 @@ export default {
       { id: "Operations", name: "Operations" },
     ];
 
+    function getFutureDate(days) {
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      return date.toISOString().split('T')[0]; // format YYYY-MM-DD
+    }
+
     const expirationOptions = [
-      { id: "30", name: "30 Days" },
-      { id: "90", name: "3 Months" },
-      { id: "180", name: "6 Months" },
-      { id: "365", name: "1 Year" },
+      { id: getFutureDate(30), name: "30 Days" },
+      { id: getFutureDate(90), name: "3 Months" },
+      { id: getFutureDate(180), name: "6 Months" },
+      { id: getFutureDate(365), name: "1 Year" },
     ];
 
     const folderOptions = ref([]);
@@ -270,44 +275,50 @@ export default {
     const handleFileUpload = (e) => form.file = e.target.files[0];
     const closeModal = () => modalState.isNewFileModalOpen = false;
 
-  const createFile = async () => {
-    try {
-      const formData = new FormData();
+const createFile = async () => {
+  try {
+    const formData = new FormData();
 
-      // Basic info
-      formData.append("name", form.name);
-      formData.append("description", form.description);
-      formData.append("owner_name", form.ownerName || loggedInUser.value);
-      formData.append("expiration_date", form.expirationDate);
-      formData.append("folder_id", form.folder_id);
-      formData.append("keywords", form.keywords.join(", "));
-      formData.append("categories", form.categories.join(", "));
-      formData.append("version", form.version);
-      formData.append("version_description", form.versionDescription);
+    // Determine expiration date
+    let expirationDateToSend = form.expirationDate; // custom date input
 
-      // ✅ Multiple arrays - send as JSON
-      formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
-      formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
-      formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
-      formData.append("approver_groups", JSON.stringify(form.approver_groups));
-      formData.append("approver_individual", JSON.stringify(form.approver_individual));
-      formData.append("approver_role", JSON.stringify(form.approver_role));
-
-      // ✅ File
-      if (form.file) formData.append("file", form.file);
-
-      const response = await axios.post("http://127.0.0.1:8000/file", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      alert("File created successfully!");
-      console.log("Server Response:", response.data);
-      closeModal();
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to save file.");
+    // If user selected a preferred expiration, override with that
+    if (form.preferredExpiration.length > 0) {
+      expirationDateToSend = form.preferredExpiration[0]; // take first selected date
     }
-  };
+
+    formData.append("name", form.name);
+    formData.append("description", form.description);
+    formData.append("owner_name", form.ownerName || loggedInUser.value);
+    formData.append("expiration_date", expirationDateToSend); // send as YYYY-MM-DD
+    formData.append("folder_id", form.folder_id);
+    formData.append("keywords", form.keywords.join(", "));
+    formData.append("categories", form.categories.join(", "));
+    formData.append("version", form.version);
+    formData.append("version_description", form.versionDescription);
+
+    formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
+    formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
+    formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
+    formData.append("approver_groups", JSON.stringify(form.approver_groups));
+    formData.append("approver_individual", JSON.stringify(form.approver_individual));
+    formData.append("approver_role", JSON.stringify(form.approver_role));
+
+    if (form.file) formData.append("file", form.file);
+
+    const response = await axios.post("http://127.0.0.1:8000/file", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    alert("File created successfully!");
+    console.log("Server Response:", response.data);
+    closeModal();
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Failed to save file.");
+  }
+};
+
     onMounted(async () => {
       try {
         const [users, groups, roles, folders] = await Promise.all([

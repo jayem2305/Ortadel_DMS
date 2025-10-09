@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-
+use App\Models\AuditLog;
 class AuthController extends Controller
 {
     public function login(Request $request)
@@ -25,6 +25,15 @@ class AuthController extends Controller
 
         // Create token (Laravel Sanctum)
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        AuditLog::create([
+            'action' => 'Logged In',
+            'module' => 'Login',
+            'target_user_id' => $user->id,
+            'description' => "{$user->first_name} {$user->last_name} is Active Today.",
+            'performed_by' => $user->id, // system
+            'performed_at' => now(),
+        ]);
 
         return response()->json([
             'user' => $user,

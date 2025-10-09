@@ -10,10 +10,12 @@ use App\Http\Controllers\FolderController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\FileController;
-
+use App\Http\Controllers\BatchFileUploadController;
 // Auth route
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/audit-logs', [AuditLogController::class, 'index']);
+// routes/api.php
+Route::post('/files/update-expired', [FileController::class, 'updateExpiredFilesApi']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('users/last-id', [UserController::class, 'getLastUserId']);
@@ -23,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('permissions', PermissionController::class);
     Route::apiResource('folders', FolderController::class);
     Route::apiResource('file', FileController::class);
+    Route::apiResource('batchfile', BatchFileUploadController::class);
 
 
 });

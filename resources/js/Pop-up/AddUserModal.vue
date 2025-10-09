@@ -178,6 +178,7 @@ const form = ref({
   assigned_color: "#000000",
   role_id: "",
   groups: [],
+  expiration_date: ""
 });
 
 const errors = reactive({

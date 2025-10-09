@@ -1,61 +1,143 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+📘 Project Technical Documentation
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+System Name: Document Management Dashboard
+Version: 1.1.0
+Author: jayem
+Last Updated: October 10, 2025
 
-## About Laravel
+🧭 Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The Archiving system is an all-in-one system for managing files, folders, users, and access controls. It provides comprehensive monitoring tools, activity tracking, and document organization features. The platform supports global quick actions, enabling users to create new content (documents, folders, users, groups, and roles) from anywhere within the application.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+🏠 Dashboard Module
+The Dashboard provides a centralized summary of system activity and storage usage.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Key Features:
+Displays uploaded data and statistical summaries.Shows log activities, file/folder/user counts per month.Monitors total MB used with a 512GB system storage limit.Includes visual charts and metrics for trends and usage overview.
 
-## Learning Laravel
+📂 Document Management Module
+Handles all uploaded files and folders with flexible display and management options.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Features:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Folder View:
+Displays Title, Description, and Date Created.Allows creation, renaming, and deletion of folders.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+File View:
+Displays Title, Status, Date, and File Size.Includes bulk actions such as:
+-Download
+-Move
+-Delete
 
-## Laravel Sponsors
+View Modes:
+List View – compact tabular layout for quick browsing.
+Grid View – visual display with icons and metadata.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+👥 User List Module
+Displays and manages all users in the system.
 
-### Premium Partners
+Features:
+-View detailed user information.
+-Edit and update user data.
+-Delete users when necessary.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+🔐 User Management Module (RBAC)
+Implements Role-Based Access Control (RBAC) to define system access levels.
 
-## Contributing
+Features:
+-Create and manage Roles, Permissions, and Groups.
+-Assign permissions to roles and link them to users.
+-Ensure secure access and operation boundaries per role.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+🧩 Access Controls Module
+Defines which users or roles have access to specific features or data.
 
-## Code of Conduct
+Features:
+-Assign users to roles.
+-Manage permission hierarchies.
+-Audit and log access-level changes.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+🏷️ Tags Module
+Facilitates categorization and keyword tagging for better document organization.
 
-## Security Vulnerabilities
+Features:
+-Create, edit, and delete tags.
+-Assign tags to files and folders.
+-Enable search and filtering by tags or categories.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+📅 Calendar Module
+Visualizes file and folder creation over time.
 
-## License
+Features:
+-Display file and folder creation dates in a calendar view.
+-Filter by month, week, or day.
+-Clickable entries to view related document details.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+🧾 Audit Logs Module
+Maintains a complete record of system and user activity.
+
+Features:
+-Logs all user actions such as login, upload, delete, and updates.
+-Includes timestamps, user info, and action details.
+-Supports filtering by date, user, or activity type.
+
+🗑️ Recycle Bin Module
+Stores deleted and expired files/folders temporarily for recovery.
+
+Features:
+-Displays all deleted and expired data.
+-Allows restoration or permanent deletion.
+-Tracks deletion date and data category (file/folder).
+
+⚙️ Settings Module
+Central configuration panel for managing application preferences and user profiles.
+
+Features:
+-Profile Settings: Update user information and preferences.
+-User Logs: Display personal activity history.
+-Version Information: View system version, updates, and metadata.
+
+🌐 Global Keys (Quick Actions)
+The Global Keys feature provides universal shortcuts accessible from any page in the system.
+
+Features:
+Quickly add new items without leaving the current page. Supported global actions:
+➕ Add Document
+📁 Add Folder
+👤 Add User
+👥 Add Group
+🛡️ Add Role
+
+Available as a floating button or keyboard shortcut menu for faster workflow.
+Ensures seamless creation of content across all modules.
+
+🧱 System Architecture
+Components:
+Frontend: Vue.js / Tailwind
+Backend: Laravel
+Database: MySQL
+Storage: Local 512GB (Temporary)
+Authentication: Laravel Sanctum
+Authorization: Role-Based Access Control (RBAC)
+Encryption Data: AES-252
+
+📊 Dashboard Metrics Summary
+Metric Description
+Total Files Count of all uploaded files
+Total Folders
+Number of created folders
+Total Users Registered and active users
+Storage Used
+Total MB consumed (512GB max)
+Logs
+Recorded system activities
+Recycle Bin Deleted and expired items count
+
+🚀 Future Enhancements
+Add AI-assisted document classification using content recognition.
+Implement custom user storage quotas.
+Introduce collaborative document editing.
+Add notifications and reminders for storage and access events.
+Apply OCR
+
+End of Document
