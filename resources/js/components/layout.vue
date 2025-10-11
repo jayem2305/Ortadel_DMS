@@ -46,7 +46,7 @@
       <!-- Sidebar Nav -->
       <nav class="flex-1 px-3 py-4 space-y-2 text-gray-700">
         <router-link
-          v-for="item in menu"
+          v-for="item in filteredMenu"
           :key="item.to"
           :to="item.to"
           class="flex items-center px-4 py-4 text-sm font-medium rounded-md border border-transparent 
@@ -269,9 +269,21 @@
         <router-view></router-view>
       </main>
 
-      <AddUserModal v-if="modalState.isAddUserOpen" />
-      <AddGroupModal v-if="modalState.isAddGroupOpen" />
-      <AddRoleModal v-if="modalState.isAddRoleOpen" />
+      <CreateUserModal 
+        :is-open="modalState.isAddUserOpen" 
+        @close="closeUserModal"
+        @success="handleUserSuccess" 
+      />
+      <CreateGroupModal 
+        :is-open="modalState.isAddGroupOpen" 
+        @close="closeGroupModal"
+        @success="handleGroupSuccess" 
+      />
+      <CreateRoleModal 
+        :is-open="modalState.isAddRoleOpen" 
+        @close="closeRoleModal"
+        @success="handleRoleSuccess" 
+      />
       <NewFileModal v-if="modalState.isNewFileModalOpen" />
       <NewFolderModal v-if="modalState.isNewFolderModalOpen" />
       <NewBatchModal v-if="modalState.isNewBatchModalOpen" />
@@ -285,16 +297,16 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useUserStore } from "../stores/user";
 import { useRouter, useRoute } from "vue-router";
 import { modalState } from '../stores/modal';
-import AddUserModal from "../Pop-up/AddUserModal.vue"; 
-import AddGroupModal from "../Pop-up/AddGroupModal.vue";
-import AddRoleModal from "../Pop-up/AddRoleModal.vue";
+import CreateUserModal from "../modals/CreateUserModal.vue"; 
+import CreateGroupModal from "../modals/CreateGroupModal.vue";
+import CreateRoleModal from "../modals/CreateRoleModal.vue";
 import NewFileModal from '../Pop-up/NewFileModal.vue';
 import NewFolderModal from '../Pop-up/NewFolderModal.vue';
 import NewBatchModal from '../Pop-up/NewBatchModal.vue';
 import NewScannedModal from '../Pop-up/NewScannedModal.vue';
 export default {
   name: "SidebarLayout",
-  components: { AddUserModal, AddGroupModal, AddRoleModal,NewFileModal,NewFolderModal, NewBatchModal, NewScannedModal }, 
+  components: { CreateUserModal, CreateGroupModal, CreateRoleModal, NewFileModal, NewFolderModal, NewBatchModal, NewScannedModal }, 
   setup() {
     const sidebarOpen = ref(true);
     const openDropdown = ref(null); // Tracks which dropdown is open
@@ -357,25 +369,121 @@ export default {
       openDropdown.value = null;
     };
 
+    // Close handlers for the new modals
+    const closeUserModal = () => {
+      modalState.isAddUserOpen = false;
+    };
+
+    const closeGroupModal = () => {
+      modalState.isAddGroupOpen = false;
+    };
+
+    const closeRoleModal = () => {
+      modalState.isAddRoleOpen = false;
+    };
+
+    // Success handlers for the new modals
+    const handleUserSuccess = (data) => {
+      console.log('User created/updated:', data);
+      modalState.isAddUserOpen = false;
+    };
+
+    const handleGroupSuccess = (data) => {
+      console.log('Group created/updated:', data);
+      modalState.isAddGroupOpen = false;
+    };
+
+    const handleRoleSuccess = (data) => {
+      console.log('Role created/updated:', data);
+      modalState.isAddRoleOpen = false;
+    };
 
     const menu = [
-      { to: "/dashboard", label: "Dashboard", icon: "fas fa-home" },
-      { to: "/files", label: "Document Management", icon: "fa-solid fa-folder" },
-      { to: "/user", label: "List of Users", icon: "fa-solid fa-user" },
-      { to: "/permission", label: "Users Management", icon: "fa-solid fa-users" },
-      { to: "/access", label: "Access Controls", icon: "fa-solid fa-file-alt" },
-      { to: "/tags", label: "Tags", icon: "fas fa-tags" },
-      { to: "/calendar", label: "Calendar", icon: "fas fa-calendar-alt" },
-      { to: "/audit", label: "Audit Logs", icon: "fas fa-clipboard-list" },
-      { to: "/recycle-bin", label: "Recycle Bin", icon: "fas fa-trash" },
+      { 
+        to: "/dashboard", 
+        label: "Dashboard", 
+        icon: "fas fa-home",
+        permission: "View Dashboard"
+      },
+      { 
+        to: "/files", 
+        label: "Document Management", 
+        icon: "fa-solid fa-folder",
+        permission: "View Files"
+      },
+      { 
+        to: "/user", 
+        label: "List of Users", 
+        icon: "fa-solid fa-user",
+        permission: "View Users"
+      },
+      { 
+        to: "/permission", 
+        label: "Users Management", 
+        icon: "fa-solid fa-users",
+        permission: "View Groups" // Users Management includes Groups/Roles
+      },
+      { 
+        to: "/access", 
+        label: "Access Controls", 
+        icon: "fa-solid fa-file-alt",
+        permission: "View Assigned Groups"
+      },
+      { 
+        to: "/tags", 
+        label: "Tags", 
+        icon: "fas fa-tags",
+        permission: "View Tags"
+      },
+      { 
+        to: "/calendar", 
+        label: "Calendar", 
+        icon: "fas fa-calendar-alt",
+        permission: "View Calendar"
+      },
+      { 
+        to: "/log", 
+        label: "Audit Logs", 
+        icon: "fas fa-clipboard-list",
+        permission: "View Logs"
+      },
+      { 
+        to: "/recycle", 
+        label: "Recycle Bin", 
+        icon: "fas fa-trash",
+        permission: "View Recycle Bin"
+      },
     ];
+
+    // Filter menu items based on user permissions
+    const filteredMenu = computed(() => {
+      const user = userStore.user;
+      console.log('Current user in layout:', user); // Debug log
+      console.log('User permissions:', user?.permissions); // Debug log
+      
+      if (!user || !user.permissions) {
+        console.log('No user or permissions found, returning empty menu'); // Debug log
+        return []; // No user or permissions loaded yet
+      }
+
+      const filtered = menu.filter(item => {
+        // Check if user has the required permission
+        const userPermissions = user.permissions || [];
+        const hasPermission = userPermissions.includes(item.permission);
+        console.log(`Checking permission "${item.permission}" for "${item.label}": ${hasPermission}`); // Debug log
+        return hasPermission;
+      });
+      
+      console.log('Filtered menu items:', filtered); // Debug log
+      return filtered;
+    });
 
     return {
       sidebarOpen,
       openDropdown,
       toggleDropdown,
       logout,
-      menu,
+      filteredMenu, // Fixed: was previously "menu: filteredMenu"
       isDashboard,
       userStore,
       modalState,
@@ -386,6 +494,12 @@ export default {
       openNewFolderModal,
       openNewBatchModal,
       openNewScannedModal,
+      closeUserModal,
+      closeGroupModal,
+      closeRoleModal,
+      handleUserSuccess,
+      handleGroupSuccess,
+      handleRoleSuccess,
     };
   },
 };

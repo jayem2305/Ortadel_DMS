@@ -31,9 +31,67 @@ export const useUserStore = defineStore("user", {
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
+    isDeveloper: (state) => state.user?.role?.name === 'Developer',
+    isAdmin: (state) => state.user?.role?.name === 'Admin',
+    userRole: (state) => state.user?.role?.name || null,
+    userPermissions: (state) => state.user?.permissions || [],
+    userPermissionsByModule: (state) => state.user?.permissions_by_module || {},
+    canAccessPermissions: (state) => {
+      const roleName = state.user?.role?.name;
+      return roleName === 'Developer'; // Only developers can access permissions
+    },
+    
+    // Permission checking methods
+    hasPermission: (state) => (permission) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes(permission);
+    },
+    
+    hasAnyPermission: (state) => (permissionArray) => {
+      const userPermissions = state.user?.permissions || [];
+      return permissionArray.some(permission => userPermissions.includes(permission));
+    },
+    
+    hasAllPermissions: (state) => (permissionArray) => {
+      const userPermissions = state.user?.permissions || [];
+      return permissionArray.every(permission => userPermissions.includes(permission));
+    },
+    
+    canAccessModule: (state) => (module) => {
+      const permissionsByModule = state.user?.permissions_by_module || {};
+      return !!permissionsByModule[module];
+    },
+    
+    // Specific permission getters for common actions
+    canViewDashboard: (state) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes('View Dashboard');
+    },
+    
+    canManageUsers: (state) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes('View Users');
+    },
+    
+    canManageFiles: (state) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes('View Files');
+    },
+    
+    canManageGroups: (state) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes('View Groups');
+    },
+    
+    canManageRoles: (state) => {
+      const permissions = state.user?.permissions || [];
+      return permissions.includes('View Roles');
+    }
   },
   actions: {
     login(userData, token) {
+      console.log('Logging in user with data:', userData); // Debug log
+      console.log('User permissions received:', userData?.permissions); // Debug log
       this.user = userData;
       this.token = token;
       localStorage.setItem("user", JSON.stringify(userData));
@@ -48,6 +106,30 @@ export const useUserStore = defineStore("user", {
     refreshState() {
       this.user = safeParse("user");
       this.token = localStorage.getItem("token") || null;
+    },
+    
+    // Permission checking methods
+    hasPermission(permission) {
+      if (!this.user?.permissions) return false;
+      return this.userPermissions.includes(permission);
+    },
+    
+    hasAnyPermission(permissions) {
+      if (!Array.isArray(permissions)) return this.hasPermission(permissions);
+      return permissions.some(permission => this.hasPermission(permission));
+    },
+    
+    hasAllPermissions(permissions) {
+      if (!Array.isArray(permissions)) return this.hasPermission(permissions);
+      return permissions.every(permission => this.hasPermission(permission));
+    },
+    
+    canAccessModule(module) {
+      if (!this.user?.permissions) return false;
+      // Check if user has any permission related to the module
+      return this.userPermissions.some(permission => 
+        permission.toLowerCase().includes(module.toLowerCase())
+      );
     },
   },
 });
@@ -78,7 +160,7 @@ export const useUsersListStore = defineStore("usersList", {
     async fetchUsers() {
       this.loading = true;
       try {
-        const res = await axios.get("http://127.0.0.1:8000/users");
+        const res = await axios.get("/users");
         this.users = res.data;
       } catch (err) {
         console.error("Failed to fetch users:", err.response?.data || err);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\File;
 use App\Models\AuditLog;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
@@ -14,6 +15,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Console\Command;
 class FileController extends Controller
 {
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
     public function updateExpiredFilesApi()
     {
         $today = Carbon::today();
@@ -43,6 +50,12 @@ class FileController extends Controller
 
     public function index()
     {
+        // Check if user has permission to view files
+        if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'View Files')) {
+            return response()->json([
+                'message' => 'Access denied. You do not have permission to view files.',
+            ], 403);
+        }
 
         $files = File::all()->map(function ($file) {
             // Convert file size to a readable format
@@ -96,6 +109,13 @@ class FileController extends Controller
     }
     public function update(Request $request, $id)
     {
+        // Check if user has permission to edit files
+        if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'Edit Files')) {
+            return response()->json([
+                'message' => 'Access denied. You do not have permission to edit files.',
+            ], 403);
+        }
+
         $file = File::find($id);
 
         if (!$file) {
@@ -135,6 +155,13 @@ class FileController extends Controller
      */
     public function destroy($id)
     {
+        // Check if user has permission to delete files
+        if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'Delete Files')) {
+            return response()->json([
+                'message' => 'Access denied. You do not have permission to delete files.',
+            ], 403);
+        }
+
         $file = File::find($id);
 
         if (!$file) {
@@ -187,6 +214,13 @@ class FileController extends Controller
 
     public function store(Request $request)
     {
+        // Check if user has permission to create files
+        if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'Create Files')) {
+            return response()->json([
+                'message' => 'Access denied. You do not have permission to create files.',
+            ], 403);
+        }
+
         // Decode JSON inputs
         $request->merge([
             'reviewer_groups' => json_decode($request->input('reviewer_groups'), true),

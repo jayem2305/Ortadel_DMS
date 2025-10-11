@@ -66,8 +66,15 @@ class RoleSeeder extends Seeder
             "View Version Info"
         ];
 
-        $managerPerms = Permission::whereNotIn('name', $restrictedForManager)->pluck('id');
-        $manager->permissions()->sync($managerPerms);
+        // Get all permissions and filter by decrypted names
+        $allPermissions = Permission::all();
+        $managerPermIds = [];
+        foreach ($allPermissions as $permission) {
+            if (!in_array($permission->name, $restrictedForManager)) {
+                $managerPermIds[] = $permission->id;
+            }
+        }
+        $manager->permissions()->sync($managerPermIds);
 
         // Staff (very restricted)
         $staff = Role::create([
@@ -81,6 +88,9 @@ class RoleSeeder extends Seeder
 
         $restrictedModulesForStaff = ["User Management", "Access Controls"];
         $restrictedPermsForStaff = [
+            "Create Users",  // Add this explicitly
+            "Edit Users",    // Add this explicitly  
+            "Delete Users",  // Add this explicitly
             "Delete Files",
             "Edit Folders",
             "Delete Folders",
@@ -96,18 +106,28 @@ class RoleSeeder extends Seeder
             "Delete Tags"
         ];
 
-        $staffPerms = Permission::query()
-            ->whereNotIn('module', $restrictedModulesForStaff)
-            ->whereNotIn('name', $restrictedPermsForStaff)
-            ->pluck('id')
-            ->toArray();
+        // Get all permissions and filter by decrypted names and modules
+        $staffPermIds = [];
+        foreach ($allPermissions as $permission) {
+            // Skip if module is restricted
+            if (in_array($permission->module, $restrictedModulesForStaff)) {
+                continue;
+            }
+            // Skip if permission name is restricted
+            if (in_array($permission->name, $restrictedPermsForStaff)) {
+                continue;
+            }
+            $staffPermIds[] = $permission->id;
+        }
 
         // Special case: in Lists of Users, allow only "View Users"
-        $allowedExtra = Permission::where('module', 'Lists of Users')
-            ->where('name', 'View Users')
-            ->pluck('id')
-            ->toArray();
+        foreach ($allPermissions as $permission) {
+            if ($permission->module === 'Lists of Users' && $permission->name === 'View Users') {
+                $staffPermIds[] = $permission->id;
+                break;
+            }
+        }
 
-        $staff->permissions()->sync(array_merge($staffPerms, $allowedExtra));
+        $staff->permissions()->sync(array_unique($staffPermIds));
     }
 }

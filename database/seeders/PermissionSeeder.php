@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Permission;
-use Illuminate\Support\Facades\Crypt;
 
 class PermissionSeeder extends Seeder
 {
@@ -110,8 +109,8 @@ class PermissionSeeder extends Seeder
             foreach ($module['permissions'] as $perm) {
                 Permission::updateOrCreate(
                     [
-                        'name' => Crypt::encryptString($perm['name']),
-                        'module' => Crypt::encryptString($module['name']), // encrypt module name
+                        'name' => $perm['name'], // Remove encryption - model will handle it
+                        'module' => $module['name'], // Remove encryption - model will handle it
                     ],
                     [
                         'description' => $perm['description'],

@@ -11,12 +11,15 @@ return new class extends Migration {
             $table->id();
             $table->text('name'); // encrypted
             $table->text('description')->nullable(); // encrypted
-            $table->foreignId('parent_id')->nullable()->constrained('folders')->onDelete('cascade');
+            $table->unsignedBigInteger('parent_id')->nullable(); // Remove foreign key constraint, will add later
             $table->json('access_users')->nullable();   // store IDs, not encrypted
             $table->json('access_groups')->nullable();  // store IDs, not encrypted
             $table->json('access_roles')->nullable();   // store IDs, not encrypted
-            $table->foreignId('created_by')->constrained('users')->onDelete('set null')->nullable();
-            $table->foreignId('updated_by')->constrained('users')->onDelete('set null')->nullable();
+
+            // TEMPORARILY using unsignedBigInteger to avoid dependency issues
+            // Foreign keys will be added later after users table is created
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
         });
     }

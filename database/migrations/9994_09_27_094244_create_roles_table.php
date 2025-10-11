@@ -13,8 +13,15 @@ return new class extends Migration {
             $table->text('type');          // encrypted, must be text
             $table->text('color')->default('#2563eb'); // encrypted hex code
             $table->text('description')->nullable();   // encrypted text
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('scope')->default('global'); // encrypted field
+            $table->boolean('assign_to_groups')->default(true);
+            $table->boolean('assign_to_users')->default(true);
+            
+            // TEMPORARILY using unsignedBigInteger to avoid dependency issues
+            // Foreign keys will be added later after users table is created
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            
             $table->timestamps();
         });
 
@@ -28,12 +35,17 @@ return new class extends Migration {
 
         Schema::create('role_permission', function (Blueprint $table) {
             $table->id();
+            
+            // Standard foreign keys for the many-to-many relationship
             $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
             $table->foreignId('permission_id')->constrained('permissions')->cascadeOnDelete();
 
-            // keep created_by and updated_by as foreignId (not encrypted, just user reference)
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            // TEMPORARILY using unsignedBigInteger to avoid dependency issues
+            // Foreign keys will be added later after users table is created
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            
+            $table->timestamps();
         });
     }
 

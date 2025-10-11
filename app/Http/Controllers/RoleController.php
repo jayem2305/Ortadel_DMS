@@ -4,143 +4,299 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\Permission;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class RoleController extends Controller
 {
-    // List roles
+    /**
+     * List all roles with permissions
+     */
     public function index()
     {
-        $roles = Role::with(['permissions', 'creator', 'updater'])->get();
+        try {
+            $roles = Role::with(['permissions', 'creator', 'updater'])->get();
 
-        // Decrypt fields before sending
-        $roles->transform(function ($role) {
-            return [
-                'id' => $role->id,
-                'name' => $role->name,           // decrypted automatically via accessor
-                'type' => $role->type,
-                'color' => $role->color,
-                'description' => $role->description,
-                'permissions' => $role->permissions->map(function ($perm) {
-                    return [
-                        'id' => $perm->id,
-                        'name' => $perm->name,
-                        'module' => $perm->module,
-                        'description' => $perm->description,
-                    ];
-                }),
-            ];
-        });
+            // Transform to ensure consistent data format (accessors handle decryption)
+            $roles = $roles->map(function ($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name, // Will be decrypted by accessor
+                    'type' => $role->type, // Will be decrypted by accessor
+                    'color' => $role->color, // Will be decrypted by accessor
+                    'description' => $role->description, // Will be decrypted by accessor
+                    'scope' => $role->scope ?? 'global', // Will be decrypted by accessor if exists
+                    'assign_to_groups' => $role->assign_to_groups ?? true,
+                    'assign_to_users' => $role->assign_to_users ?? true,
+                    'created_by' => $role->created_by,
+                    'updated_by' => $role->updated_by,
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                    'permissions' => $role->permissions->map(function ($perm) {
+                        return [
+                            'id' => $perm->id,
+                            'name' => $perm->name, // Will be decrypted by accessor
+                            'module' => $perm->module, // Will be decrypted by accessor
+                            'description' => $perm->description, // Will be decrypted by accessor
+                        ];
+                    }),
+                ];
+            });
 
-        return response()->json($roles);
+            return response()->json($roles)
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to fetch roles',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-
-    // Show single role
+    /**
+     * Show single role with permissions
+     */
     public function show(Role $role)
     {
-        $role->load(['permissions', 'creator', 'updater']);
+        try {
+            $role->load(['permissions', 'creator', 'updater']);
 
-        $role->name = decrypt($role->name);
-        $role->type = decrypt($role->type);
-        $role->color = decrypt($role->color);
-        if ($role->description) {
-            $role->description = decrypt($role->description);
+            return response()->json([
+                'role' => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'type' => $role->type,
+                    'color' => $role->color,
+                    'description' => $role->description,
+                    'scope' => $role->scope ?? 'global',
+                    'assign_to_groups' => $role->assign_to_groups ?? true,
+                    'assign_to_users' => $role->assign_to_users ?? true,
+                    'created_by' => $role->created_by,
+                    'updated_by' => $role->updated_by,
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                    'permissions' => $role->permissions->map(function ($perm) {
+                        return [
+                            'id' => $perm->id,
+                            'name' => $perm->name,
+                            'module' => $perm->module,
+                            'description' => $perm->description,
+                        ];
+                    }),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Role not found',
+                'error' => $e->getMessage()
+            ], 404);
         }
-
-        $role->permissions->transform(function ($permission) {
-            $permission->module = decrypt($permission->module);
-            $permission->name = decrypt($permission->name);
-            if ($permission->description) {
-                $permission->description = decrypt($permission->description);
-            }
-            return $permission;
-        });
-
-        if ($role->creator) {
-            $role->creator->name = decrypt($role->creator->name);
-        }
-        if ($role->updater) {
-            $role->updater->name = decrypt($role->updater->name);
-        }
-
-        return response()->json($role);
     }
 
-    // Store new role
+    /**
+     * Store new role
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'type' => 'required|string',
-            'color' => 'required|string',
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|in:system,custom',
+            'color' => 'required|string|max:7', // hex color
             'description' => 'nullable|string',
+            'scope' => 'nullable|string|in:global,local',
+            'assign_to_groups' => 'boolean',
+            'assign_to_users' => 'boolean',
             'permissions' => 'array',
-            'permissions.*' => 'integer|exists:permissions,id', // ✅ only IDs
+            'permissions.*' => 'integer|exists:permissions,id',
         ]);
 
-        $role = Role::create([
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'color' => $validated['color'],
-            'description' => $validated['description'] ?? null,
-            'created_by' => Auth::id(),
-            'updated_by' => Auth::id(),
-        ]);
+        try {
+            $role = Role::create([
+                'name' => $validated['name'],
+                'type' => $validated['type'],
+                'color' => $validated['color'],
+                'description' => $validated['description'] ?? null,
+                'scope' => $validated['scope'] ?? 'global',
+                'assign_to_groups' => $validated['assign_to_groups'] ?? true,
+                'assign_to_users' => $validated['assign_to_users'] ?? true,
+                'created_by' => Auth::id() ?? 1,
+                'updated_by' => Auth::id() ?? 1,
+            ]);
 
-        if (!empty($validated['permissions'])) {
-            $pivotData = [];
-            foreach ($validated['permissions'] as $pid) {
-                $pivotData[$pid] = [
-                    'created_by' => Auth::id(),
-                    'updated_by' => Auth::id(),
-                ];
+            // Attach permissions using existing role_permission pivot table
+            if (!empty($validated['permissions'])) {
+                $pivotData = [];
+                foreach ($validated['permissions'] as $permissionId) {
+                    $pivotData[$permissionId] = [
+                        'created_by' => Auth::id() ?? 1,
+                        'updated_by' => Auth::id() ?? 1,
+                    ];
+                }
+                $role->permissions()->attach($pivotData);
             }
-            $role->permissions()->attach($pivotData);
-        }
 
-        return response()->json($role->load(['permissions', 'creator', 'updater']), 201);
+            // Load relationships for response
+            $role->load('permissions');
+
+            // Log the action
+            AuditLog::create([
+                'action' => 'Created Role',
+                'module' => 'Role Management',
+                'target_user_id' => null,
+                'description' => "Created role: {$role->name} ({$role->type})",
+                'performed_by' => Auth::id() ?? 1,
+                'performed_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'Role created successfully',
+                'role' => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'type' => $role->type,
+                    'color' => $role->color,
+                    'description' => $role->description,
+                    'scope' => $role->scope,
+                    'assign_to_groups' => $role->assign_to_groups,
+                    'assign_to_users' => $role->assign_to_users,
+                    'permissions' => $role->permissions->map(function ($perm) {
+                        return [
+                            'id' => $perm->id,
+                            'name' => $perm->name,
+                            'module' => $perm->module,
+                            'description' => $perm->description,
+                        ];
+                    }),
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create role',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    // Update role
+    /**
+     * Update role
+     */
     public function update(Request $request, Role $role)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'type' => 'required|string',
-            'color' => 'required|string',
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|in:system,custom',
+            'color' => 'required|string|max:7',
             'description' => 'nullable|string',
+            'scope' => 'nullable|string|in:global,local',
+            'assign_to_groups' => 'boolean',
+            'assign_to_users' => 'boolean',
             'permissions' => 'array',
-            'permissions.*' => 'integer|exists:permissions,id', // ✅ only IDs
+            'permissions.*' => 'integer|exists:permissions,id',
         ]);
 
-        $role->update([
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'color' => $validated['color'],
-            'description' => $validated['description'] ?? null,
-            'updated_by' => Auth::id(),
-        ]);
+        try {
+            $oldName = $role->name;
 
-        if (isset($validated['permissions'])) {
-            $pivotData = [];
-            foreach ($validated['permissions'] as $pid) {
-                $pivotData[$pid] = [
-                    'created_by' => $role->created_by,
-                    'updated_by' => Auth::id(),
-                ];
+            $role->update([
+                'name' => $validated['name'],
+                'type' => $validated['type'],
+                'color' => $validated['color'],
+                'description' => $validated['description'] ?? null,
+                'scope' => $validated['scope'] ?? 'global',
+                'assign_to_groups' => $validated['assign_to_groups'] ?? true,
+                'assign_to_users' => $validated['assign_to_users'] ?? true,
+                'updated_by' => Auth::id() ?? 1,
+            ]);
+
+            // Sync permissions using existing role_permission pivot table
+            if (isset($validated['permissions'])) {
+                $pivotData = [];
+                foreach ($validated['permissions'] as $permissionId) {
+                    $pivotData[$permissionId] = [
+                        'created_by' => $role->created_by,
+                        'updated_by' => Auth::id() ?? 1,
+                    ];
+                }
+                $role->permissions()->sync($pivotData);
             }
-            $role->permissions()->sync($pivotData);
-        }
 
-        return response()->json($role->load(['permissions', 'creator', 'updater']));
+            // Load relationships for response
+            $role->load('permissions');
+
+            // Log the action
+            AuditLog::create([
+                'action' => 'Updated Role',
+                'module' => 'Role Management',
+                'target_user_id' => null,
+                'description' => "Updated role: {$oldName} -> {$role->name}",
+                'performed_by' => Auth::id() ?? 1,
+                'performed_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'Role updated successfully',
+                'role' => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'type' => $role->type,
+                    'color' => $role->color,
+                    'description' => $role->description,
+                    'scope' => $role->scope,
+                    'assign_to_groups' => $role->assign_to_groups,
+                    'assign_to_users' => $role->assign_to_users,
+                    'permissions' => $role->permissions->map(function ($perm) {
+                        return [
+                            'id' => $perm->id,
+                            'name' => $perm->name,
+                            'module' => $perm->module,
+                            'description' => $perm->description,
+                        ];
+                    }),
+                    'updated_at' => $role->updated_at,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update role',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    // Delete role
+    /**
+     * Delete role
+     */
     public function destroy(Role $role)
     {
-        $role->delete();
-        return response()->json(['message' => 'Role deleted successfully']);
+        try {
+            $roleName = $role->name;
+
+            // Detach all permissions
+            $role->permissions()->detach();
+
+            // Log the action before deletion
+            AuditLog::create([
+                'action' => 'Deleted Role',
+                'module' => 'Role Management',
+                'target_user_id' => null,
+                'description' => "Deleted role: {$roleName}",
+                'performed_by' => Auth::id() ?? 1,
+                'performed_at' => now(),
+            ]);
+
+            $role->delete();
+
+            return response()->json(['message' => 'Role deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete role',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

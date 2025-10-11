@@ -18,13 +18,13 @@ return new class extends Migration {
             $table->longText('email')->unique();
             $table->string('email_hash')->unique(); // NEW
             $table->longText('assigned_color')->nullable();
-            $table->foreignId('role_id')->constrained('roles'); // changed role to integer FK
+            $table->unsignedBigInteger('role_id'); // Remove foreign key constraint, will add later
             $table->longText('groups')->nullable();
             $table->string('password');
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('last_updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('created_by')->nullable(); // Remove foreign key constraint, will add later
+            $table->unsignedBigInteger('last_updated_by')->nullable(); // Remove foreign key constraint, will add later
             $table->timestamps();
         });
 
@@ -36,7 +36,7 @@ return new class extends Migration {
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index(); // Remove foreign key constraint, will add later
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');

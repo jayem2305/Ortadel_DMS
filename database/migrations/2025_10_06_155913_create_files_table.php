@@ -16,11 +16,8 @@ return new class extends Migration {
             $table->date('expiration_date')->nullable();    // encrypted
             $table->string('owner_name', 512);              // encrypted
 
-            // Folder foreign key - still nullable
-            $table->foreignId('folder_id')
-                ->nullable()
-                ->constrained('folders')
-                ->onDelete('set null'); // encrypted
+            // Folder foreign key - remove constraint, will add later
+            $table->unsignedBigInteger('folder_id')->nullable(); // encrypted
 
             // JSON fields for reviewers/approvers
             $table->text('assign_reviewer')->nullable();   // changed from json to text

@@ -20,6 +20,7 @@ class User extends Authenticatable
         'assigned_color',
         'role_id',      // FK to roles
         'groups',
+        'status',       
         'created_by',
         'last_updated_by',
     ];
@@ -56,7 +57,7 @@ class User extends Authenticatable
         });
     }
 
-    // 🔹 Relationships
+    
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -70,5 +71,97 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    // Many-to-many relationship with groups
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user')
+            ->using(GroupUser::class)
+            ->withPivot(['created_by', 'updated_by'])
+            ->withTimestamps();
+    }
+
+    // Many-to-many relationship with roles (if multiple roles per user)
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_role')
+            ->using(UserRole::class)
+            ->withPivot(['created_by', 'updated_by'])
+            ->withTimestamps();
+    }
+
+    // 🔹 Permission Methods - FROM PREVIOUS SYSTEM
+    
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission(string $permissionName): bool
+    {
+        if (!$this->role) {
+            return false;
+        }
+
+        // Get all permissions and check decrypted names
+        $permissions = $this->role->permissions()->get();
+        foreach ($permissions as $permission) {
+            if ($permission->name === $permissionName) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user has any of the given permissions
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if user has all of the given permissions
+     */
+    public function hasAllPermissions(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (!$this->hasPermission($permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get all user permissions
+     */
+    public function getPermissions()
+    {
+        if (!$this->role) {
+            return collect([]);
+        }
+
+        return $this->role->permissions;
+    }
+
+    /**
+     * Check if user can access a specific module
+     */
+    public function canAccessModule(string $module): bool
+    {
+        if (!$this->role) {
+            return false;
+        }
+
+        return $this->role->permissions()
+            ->where('module', $module)
+            ->exists();
     }
 }
