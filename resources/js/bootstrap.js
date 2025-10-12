@@ -7,9 +7,23 @@ import 'bootstrap';
  */
 
 import axios from 'axios';
-window.axios = axios;
 
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+// Configure axios defaults
+// Use relative path so it works with any deployment URL
+axios.defaults.baseURL = '/api';
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+axios.defaults.headers.common['Accept'] = 'application/json';
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+axios.defaults.withCredentials = true; // Send cookies for CSRF protection
+
+// Add CSRF token from meta tag if available
+const token = document.head.querySelector('meta[name="csrf-token"]');
+if (token) {
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+}
+
+// Make axios available globally
+window.axios = axios;
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

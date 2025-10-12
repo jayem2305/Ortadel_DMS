@@ -16,8 +16,9 @@ return new class extends Migration {
             $table->timestamp('performed_at')->useCurrent();
             $table->timestamps();
 
+            // Remove foreign key constraints, will add later
             //$table->foreign('target_user_id')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('performed_by')->references('id')->on('users')->onDelete('cascade');
+            //$table->foreign('performed_by')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

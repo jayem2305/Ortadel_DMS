@@ -12,16 +12,40 @@ class Role extends Model
         'type',
         'color',
         'description',
+        'scope',                // Added from previous system
+        'assign_to_groups',     // Added from previous system
+        'assign_to_users',      // Added from previous system
         'created_by',  // keep as int
         'updated_by',  // keep as int
     ];
 
-    // 🔹 Relationships
+    protected $casts = [
+        'assign_to_groups' => 'boolean',
+        'assign_to_users' => 'boolean',
+    ];
+
+    // 🔹 Enhanced Relationships from previous system
     public function permissions()
     {
         return $this->belongsToMany(Permission::class, 'role_permission')
             ->using(RolePermission::class)
             ->withPivot(['created_by', 'updated_by']); // leave as int
+    }
+
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_role')
+            ->using(GroupRole::class)
+            ->withPivot(['created_by', 'updated_by'])
+            ->withTimestamps();
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_role')
+            ->using(UserRole::class)
+            ->withPivot(['created_by', 'updated_by'])
+            ->withTimestamps();
     }
 
     public function creator()
@@ -34,7 +58,7 @@ class Role extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    // 🔹 Encryption for strings only
+    // 🔹 Encryption for strings only - PRESERVED CURRENT ENCRYPTION SYSTEM
     protected function setNameAttribute($value)
     {
         $this->attributes['name'] = Crypt::encryptString($value);
