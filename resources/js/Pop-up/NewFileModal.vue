@@ -1,43 +1,62 @@
 <template>
-  <div v-if="modalState.isNewFileModalOpen" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+  <div
+    v-if="modalState.isNewFileModalOpen"
+    class="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+  >
     <div class="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-6xl max-h-[90vh] overflow-y-auto p-8">
-      <h2 class="text-2xl font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+      <h2
+        class="text-2xl font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2"
+      >
         <i class="fa-solid fa-file-circle-plus text-blue-600"></i>
         New File
       </h2>
 
       <form @submit.prevent="createFile" class="grid grid-cols-2 gap-8">
-
         <!-- LEFT COLUMN -->
         <div class="space-y-8">
           <!-- Document Information -->
           <section>
-            <h3 class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2">
+            <h3
+              class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2"
+            >
               <i class="fa-solid fa-folder-open text-blue-500"></i>
               Document Information
             </h3>
-            <div class="space-y-4">
 
+            <div class="space-y-4">
               <!-- Name -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input v-model="form.name" type="text" placeholder="Document Name" class="w-full border rounded-lg p-2" required/>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Name</label
+                >
+                <input
+                  v-model="form.name"
+                  type="text"
+                  placeholder="Document Name"
+                  class="w-full border rounded-lg p-2"
+                />
               </div>
 
               <!-- Description -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea v-model="form.description" placeholder="Short description..." class="w-full border rounded-lg p-2"></textarea>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Description</label
+                >
+                <textarea
+                  v-model="form.description"
+                  placeholder="Short description..."
+                  class="w-full border rounded-lg p-2"
+                ></textarea>
               </div>
 
-              <!-- Keywords -->
+              <!-- Keywords (Dynamic) -->
               <MultiSelect
                 label="Keywords"
                 :options="keywordOptions"
                 v-model="form.keywords"
               />
 
-              <!-- Category -->
+              <!-- Category (Dynamic) -->
               <MultiSelect
                 label="Category"
                 :options="categoryOptions"
@@ -55,7 +74,9 @@
 
           <!-- Assign Reviewers -->
           <section>
-            <h3 class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2">
+            <h3
+              class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2"
+            >
               <i class="fa-solid fa-user-check text-blue-500"></i>
               Assign Reviewers
             </h3>
@@ -84,31 +105,67 @@
         <div class="space-y-8">
           <!-- Version Info -->
           <section>
-            <h3 class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2">
+            <h3
+              class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2"
+            >
               <i class="fa-solid fa-code-branch text-blue-500"></i>
               Version Information
             </h3>
             <div class="space-y-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
-              <input v-model="form.version" type="text" placeholder="Default: 1" class="w-full border rounded-lg p-2"/>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
-              <input type="file" @change="handleFileUpload" class="w-full border rounded-lg p-2"/>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea v-model="form.versionDescription" placeholder="Version details..." class="w-full border rounded-lg p-2"></textarea>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Version</label
+              >
+              <input
+                v-model="form.version"
+                type="text"
+                placeholder="Default: 1"
+                class="w-full border rounded-lg p-2"
+              />
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Upload File</label
+              >
+              <input
+                type="file"
+                @change="handleFileUpload"
+                class="w-full border rounded-lg p-2"
+              />
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Description</label
+              >
+              <textarea
+                v-model="form.versionDescription"
+                placeholder="Version details..."
+                class="w-full border rounded-lg p-2"
+              ></textarea>
             </div>
           </section>
 
           <!-- Owner & Expiration -->
           <section>
-            <h3 class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2">
+            <h3
+              class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2"
+            >
               <i class="fa-solid fa-user-tie text-blue-500"></i>
               Owner & Expiration
             </h3>
             <div class="space-y-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
-              <input v-model="form.ownerName" type="text" readonly class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed"/>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-              <input v-model="form.expirationDate" type="date" class="w-full border rounded-lg p-2"/>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Owner Name</label
+              >
+              <input
+                v-model="form.ownerName"
+                type="text"
+                readonly
+                class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed"
+              />
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Expiration Date</label
+              >
+              <input
+                v-model="form.expirationDate"
+                type="date"
+                class="w-full border rounded-lg p-2"
+              />
               <MultiSelect
                 label="Preferred Expiration"
                 :options="expirationOptions"
@@ -119,7 +176,9 @@
 
           <!-- Assign Approvers -->
           <section>
-            <h3 class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2">
+            <h3
+              class="text-lg font-semibold mb-3 text-blue-700 flex items-center gap-2"
+            >
               <i class="fa-solid fa-circle-check text-blue-500"></i>
               Assign Approvers
             </h3>
@@ -145,21 +204,34 @@
         </div>
 
         <!-- ACTION BUTTONS -->
-        <div class="col-span-2 flex justify-end mt-6 space-x-3 border-t pt-4">
-          <button type="button" @click="closeModal" class="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Create</button>
+        <div
+          class="col-span-2 flex justify-end mt-6 space-x-3 border-t pt-4"
+        >
+          <button
+            type="button"
+            @click="closeModal"
+            class="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+          >
+            Create
+          </button>
         </div>
-
       </form>
     </div>
   </div>
 </template>
 
 <script>
-import { reactive, ref, onMounted, computed  } from "vue";
+import { reactive, ref, onMounted, computed } from "vue";
 import axios from "axios";
 import { modalState } from "../stores/modal";
 
+// ✅ Reusable MultiSelect component (unchanged)
 const MultiSelect = {
   props: ["label", "options", "modelValue"],
   emits: ["update:modelValue"],
@@ -168,17 +240,23 @@ const MultiSelect = {
     const search = ref("");
 
     const filtered = computed(() =>
-      props.options.filter(o => o.name.toLowerCase().includes(search.value.toLowerCase()))
+      props.options.filter((o) =>
+        o.name.toLowerCase().includes(search.value.toLowerCase())
+      )
     );
 
     const toggle = (id) => {
       let value = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
-      value.includes(id) ? value = value.filter(x => x !== id) : value.push(id);
+      value.includes(id)
+        ? (value = value.filter((x) => x !== id))
+        : value.push(id);
       emit("update:modelValue", value);
     };
 
     const remove = (id) => {
-      const value = Array.isArray(props.modelValue) ? props.modelValue.filter(x => x !== id) : [];
+      const value = Array.isArray(props.modelValue)
+        ? props.modelValue.filter((x) => x !== id)
+        : [];
       emit("update:modelValue", value);
     };
 
@@ -212,7 +290,7 @@ const MultiSelect = {
         <div v-else class="px-3 py-2 text-gray-400 text-sm">No items found</div>
       </div>
     </div>
-  `
+  `,
 };
 
 export default {
@@ -239,24 +317,20 @@ export default {
       file: null,
     });
 
-    const keywordOptions = [
-      { id: "Important", name: "Important" },
-      { id: "Urgent", name: "Urgent" },
-      { id: "Review", name: "Review" },
-      { id: "Confidential", name: "Confidential" },
-    ];
+    // 🔄 Dynamic options
+    const keywordOptions = ref([]);
+    const categoryOptions = ref([]);
+    const folderOptions = ref([]);
+    const groupOptions = ref([]);
+    const userOptions = ref([]);
+    const roleOptions = ref([]);
+    const loggedInUser = ref(localStorage.getItem("username") || "John Doe");
 
-    const categoryOptions = [
-      { id: "Finance", name: "Finance" },
-      { id: "HR", name: "HR" },
-      { id: "Legal", name: "Legal" },
-      { id: "Operations", name: "Operations" },
-    ];
-
+    // Generate expiration options
     function getFutureDate(days) {
       const date = new Date();
       date.setDate(date.getDate() + days);
-      return date.toISOString().split('T')[0]; // format YYYY-MM-DD
+      return date.toISOString().split("T")[0];
     }
 
     const expirationOptions = [
@@ -266,82 +340,90 @@ export default {
       { id: getFutureDate(365), name: "1 Year" },
     ];
 
-    const folderOptions = ref([]);
-    const groupOptions = ref([]);
-    const userOptions = ref([]);
-    const roleOptions = ref([]);
-    const loggedInUser = ref(localStorage.getItem("username") || "John Doe");
+    const handleFileUpload = (e) => (form.file = e.target.files[0]);
+    const closeModal = () => (modalState.isNewFileModalOpen = false);
 
-    const handleFileUpload = (e) => form.file = e.target.files[0];
-    const closeModal = () => modalState.isNewFileModalOpen = false;
-
-const createFile = async () => {
-  try {
-    const formData = new FormData();
-
-    // Determine expiration date
-    let expirationDateToSend = form.expirationDate; // custom date input
-
-    // If user selected a preferred expiration, override with that
-    if (form.preferredExpiration.length > 0) {
-      expirationDateToSend = form.preferredExpiration[0]; // take first selected date
-    }
-
-    formData.append("name", form.name);
-    formData.append("description", form.description);
-    formData.append("owner_name", form.ownerName || loggedInUser.value);
-    formData.append("expiration_date", expirationDateToSend); // send as YYYY-MM-DD
-    formData.append("folder_id", form.folder_id);
-    formData.append("keywords", form.keywords.join(", "));
-    formData.append("categories", form.categories.join(", "));
-    formData.append("version", form.version);
-    formData.append("version_description", form.versionDescription);
-
-    formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
-    formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
-    formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
-    formData.append("approver_groups", JSON.stringify(form.approver_groups));
-    formData.append("approver_individual", JSON.stringify(form.approver_individual));
-    formData.append("approver_role", JSON.stringify(form.approver_role));
-
-    if (form.file) formData.append("file", form.file);
-
-    const response = await axios.post("http://127.0.0.1:8000/file", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    alert("File created successfully!");
-    console.log("Server Response:", response.data);
-    closeModal();
-  } catch (error) {
-    console.error("Error:", error);
-    alert("Failed to save file.");
-  }
-};
-
+    // ✅ Fetch dynamic data
     onMounted(async () => {
       try {
-        const [users, groups, roles, folders] = await Promise.all([
-          axios.get("http://127.0.0.1:8000/users"),
-          axios.get("http://127.0.0.1:8000/groups"),
-          axios.get("http://127.0.0.1:8000/roles"),
-          axios.get("http://127.0.0.1:8000/folders"),
+        const [keywords, categories, users, groups, roles, folders] = await Promise.all([
+          axios.get("http://127.0.0.1:8000/api/keywords"),
+          axios.get("http://127.0.0.1:8000/api/categories"),
+          axios.get("http://127.0.0.1:8000/api/users"),
+          axios.get("http://127.0.0.1:8000/api/groups"),
+          axios.get("http://127.0.0.1:8000/api/roles"),
+          axios.get("http://127.0.0.1:8000/api/folders"),
         ]);
+
+        keywordOptions.value = keywords.data.map(k => ({ id: k.id, name: k.name }));
+        categoryOptions.value = categories.data.map(c => ({ id: c.id, name: c.name }));
         userOptions.value = users.data;
         groupOptions.value = groups.data.groups || [];
         roleOptions.value = roles.data;
-        folderOptions.value = folders.data;
+        folderOptions.value = Array.isArray(folders.data)
+  ? folders.data
+  : folders.data?.folders || folders.data?.data || [];
+
         form.ownerName = loggedInUser.value;
       } catch (error) {
         console.error("Loading failed:", error);
       }
     });
 
-    return {
-      modalState, form, closeModal, createFile, handleFileUpload,
-      keywordOptions, categoryOptions, folderOptions, groupOptions, userOptions, roleOptions, expirationOptions
+    // ✅ Create file
+    const createFile = async () => {
+      try {
+        const formData = new FormData();
+        let expirationDateToSend = form.expirationDate;
+        if (form.preferredExpiration.length > 0)
+          expirationDateToSend = form.preferredExpiration[0];
+
+        formData.append("name", form.name);
+        formData.append("description", form.description);
+        formData.append("owner_name", form.ownerName || loggedInUser.value);
+        formData.append("expiration_date", expirationDateToSend);
+        formData.append("folder_id", form.folder_id);
+        form.keywords.forEach(k => formData.append("keywords[]", k));
+        form.categories.forEach(c => formData.append("categories[]", c));
+        formData.append("version", form.version);
+        formData.append("version_description", form.versionDescription);
+
+        formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
+        formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
+        formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
+        formData.append("approver_groups", JSON.stringify(form.approver_groups));
+        formData.append("approver_individual", JSON.stringify(form.approver_individual));
+        formData.append("approver_role", JSON.stringify(form.approver_role));
+
+        if (form.file) formData.append("file", form.file);
+
+        await axios.post("http://127.0.0.1:8000/api/file", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        alert("File created successfully!");
+        closeModal();
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to save file.");
+      }
     };
-  }
+
+    return {
+      modalState,
+      form,
+      closeModal,
+      createFile,
+      handleFileUpload,
+      keywordOptions,
+      categoryOptions,
+      folderOptions,
+      groupOptions,
+      userOptions,
+      roleOptions,
+      expirationOptions,
+    };
+  },
 };
 </script>
 

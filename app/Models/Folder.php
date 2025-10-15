@@ -66,21 +66,30 @@ class Folder extends Model
         return $value ? json_decode($value, true) : [];
     }
 
-    // Relationships
+    // ✅ Relationships
     public function parent()
     {
         return $this->belongsTo(Folder::class, 'parent_id');
     }
+
     public function children()
     {
         return $this->hasMany(Folder::class, 'parent_id');
     }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // ✅ Add this relationship
+    public function files()
+    {
+        return $this->hasMany(File::class, 'folder_id');
     }
 }

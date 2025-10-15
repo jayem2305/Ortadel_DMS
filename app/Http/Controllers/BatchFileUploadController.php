@@ -8,12 +8,26 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\AuditLog;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Auth;
 
 class BatchFileUploadController extends Controller
 {
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
+
     public function store(Request $request)
     {
+        // Check if user has permission to create files
+        if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'Create Files')) {
+            return response()->json([
+                'message' => 'Access denied. You do not have permission to create files.',
+            ], 403);
+        }
         $request->validate([
             'files.*' => 'required|file|max:10240', // max 10MB per file
             'folder_id' => 'required|integer|exists:folders,id',

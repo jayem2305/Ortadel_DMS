@@ -270,40 +270,17 @@ function formatFileSize(size) {
 
 async function fetchData() {
   try {
-    console.log("Fetching folders and files...");
-    console.log("Token:", localStorage.getItem("token"));
-    console.log("Axios baseURL:", axios.defaults.baseURL);
-    
     const [foldersRes, filesRes] = await Promise.all([
-      axios.get("/folders"),
-      axios.get("/file"),
+      axios.get("http://127.0.0.1:8000/api/folders"),
+      axios.get("http://127.0.0.1:8000/api/file"),
     ]);
-    
-    console.log("Folders response:", foldersRes);
-    console.log("Files response:", filesRes);
-    
-    // Handle both array and object responses
-    folders.value = Array.isArray(foldersRes.data) ? foldersRes.data : (foldersRes.data.data || []);
-    files.value = Array.isArray(filesRes.data) ? filesRes.data : (filesRes.data.data || []);
-    
-    console.log("Loaded folders:", folders.value.length, "items");
-    console.log("Loaded files:", files.value.length, "items");
-    
-    if (folders.value.length === 0 && files.value.length === 0) {
-      console.log("No folders or files found. Workspace is empty.");
-    }
+folders.value = foldersRes.data.folders; // <-- access the array directly
+files.value = filesRes.data.data;        // this is already correct
+
+
   } catch (err) {
-    console.error("=== ERROR FETCHING DATA ===");
-    console.error("Error object:", err);
-    console.error("Error message:", err.message);
-    console.error("Error response:", err.response);
-    console.error("Error status:", err.response?.status);
-    console.error("Error data:", err.response?.data);
-    console.error("Request URL:", err.config?.url);
-    console.error("Request baseURL:", err.config?.baseURL);
-    error.value = err.response?.data?.message || "Failed to load workspace. Please make sure you are logged in.";
+    error.value = err.response?.data?.message || "Failed to load workspace.";
   } finally {
-    console.log("Setting loading to false");
     loading.value = false;
   }
 }

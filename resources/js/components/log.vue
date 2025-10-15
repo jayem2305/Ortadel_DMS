@@ -106,7 +106,7 @@ const logs = ref([])
 
 const fetchLogs = async () => {
   try {
-    const res = await axios.get('http://127.0.0.1:8000/audit-logs')
+    const res = await axios.get('http://127.0.0.1:8000/api/audit-logs')
     const data = await Promise.all(res.data.map(async log => {
       // Format timestamp
       const ts = log.performed_at || log.created_at || null
@@ -121,14 +121,14 @@ const fetchLogs = async () => {
       let targetName = ''
       if (log.module === 'FOLDER' && log.target_user_id) {
         try {
-          const folder = await axios.get(`http://127.0.0.1:8000/folders/${log.target_user_id}`)
+          const folder = await axios.get(`http://127.0.0.1:8000/api/folders/${log.target_user_id}`)
           targetName = folder.data.name
         } catch {
           targetName = 'Folder not found'
         }
       } else if (log.module === 'USER' && log.target_user_id) {
         try {
-          const user = await axios.get(`http://127.0.0.1:8000/users/${log.target_user_id}`)
+          const user = await axios.get(`http://127.0.0.1:8000/api/users/${log.target_user_id}`)
           targetName = `${user.data.first_name} ${user.data.last_name}`
         } catch {
           targetName = 'User not found'

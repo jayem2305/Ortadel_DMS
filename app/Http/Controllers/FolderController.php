@@ -35,10 +35,10 @@ class FolderController extends Controller
             $folders = Folder::with(['parent', 'children', 'files'])->get()->map(function ($folder) {
                 return [
                     'id' => $folder->id,
-                    'name' => $folder->name, 
-                    'description' => $folder->description, 
+                    'name' => $folder->name,
+                    'description' => $folder->description,
                     'parent_id' => $folder->parent_id,
-                    'path' => $folder->path, 
+                    'path' => $folder->path,
                     'status' => $folder->status,
                     'parent' => $folder->parent ? [
                         'id' => $folder->parent->id,
@@ -85,7 +85,7 @@ class FolderController extends Controller
                 'description' => 'nullable|string',
                 'parent_id' => 'nullable|exists:folders,id',
                 'path' => 'nullable|string',
-                'status' => 'required|in:active,inactive',
+                //'status' => 'required|in:active,inactive', no need to indicate this part Default value always Active
             ]);
 
             // If no folders exist, root folder has parent_id = null
@@ -122,7 +122,7 @@ class FolderController extends Controller
                     'description' => $folder->description,
                     'parent_id' => $folder->parent_id,
                     'path' => $folder->path,
-                    'status' => $folder->status,
+                    'status' => $folder->status ?? 'active',
                     'created_by' => $folder->created_by,
                     'updated_by' => $folder->updated_by,
                     'created_at' => $folder->created_at,

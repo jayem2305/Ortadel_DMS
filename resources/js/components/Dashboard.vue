@@ -18,19 +18,22 @@
           </div>
         </div>
 
-        <!-- Folders -->
-        <div class="p-4 bg-green-50 rounded-lg shadow hover:shadow-md transition">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm text-gray-600">Folders</h3>
-              <p class="text-2xl font-bold text-green-700">{{ foldersCount }}</p>
-              <span :class="foldersChange >= 0 ? 'text-green-600' : 'text-red-600'" class="text-xs">
-                {{ foldersChange >= 0 ? '+' : '' }}{{ foldersChange.toFixed(1) }}% from last month
-              </span>
-            </div>
-            <i class="fa-solid fa-folder text-green-600 text-3xl"></i>
-          </div>
-        </div>
+  <!-- Folders Card -->
+  <div class="p-4 bg-green-50 rounded-lg shadow hover:shadow-md transition">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-sm text-gray-600">Folders</h3>
+        <p class="text-2xl font-bold text-green-700">{{ foldersCount }}</p>
+        <span
+          :class="foldersChange >= 0 ? 'text-green-600' : 'text-red-600'"
+          class="text-xs"
+        >
+          {{ foldersChange >= 0 ? '+' : '' }}{{ foldersChange.toFixed(1) }}% from last month
+        </span>
+      </div>
+      <i class="fa-solid fa-folder text-green-600 text-3xl"></i>
+    </div>
+  </div>
 
         <!-- Users -->
         <div class="p-4 bg-yellow-50 rounded-lg shadow hover:shadow-md transition">
@@ -280,9 +283,8 @@ const sortOrder = ref('asc');
 const selectedPeriod = ref('monthly'); // daily, weekly, monthly
 const requestTrendData = ref({ daily: {}, weekly: {}, monthly: {} });
 const searchQuery = ref('');
-
+const folders = ref([]); // fetched folders
 const totalStorage = 512 * 1024 ** 3; // 512 GB in bytes
-
 function parseSize(sizeStr) {
   if (!sizeStr) return 0;
   const num = parseFloat(sizeStr);
@@ -382,7 +384,7 @@ function sortBy(field) {
 
 
 function calculatePercentage(current, last) {
-  if (!last || last === 0) return 0;
+  if (!last || last === 0) return current > 0 ? 100 : 0;
   return ((current - last) / last) * 100;
 }
 function updateNotifications(filesList) {
@@ -409,33 +411,71 @@ function updateNotifications(filesList) {
 // 🔹 Fetch data
 onMounted(async () => {
   try {
-    const resFiles = await axios.get("http://127.0.0.1:8000/file");
-    files.value = Array.isArray(resFiles.data) ? resFiles.data : resFiles.data.data || [];
-    // Update notification counts based on status/due_date
-    updateNotifications(files.value);
     const now = new Date();
-    const thisMonthFiles = files.value.filter(f => new Date(f.created_at).getMonth() === now.getMonth()).length;
-    const lastMonthFiles = files.value.filter(f => new Date(f.created_at).getMonth() === now.getMonth()-1).length;
+
+    // 🔹 Fetch Files
+    const resFiles = await axios.get("http://127.0.0.1:8000/api/file");
+    files.value = Array.isArray(resFiles.data) ? resFiles.data : resFiles.data.data || [];
+
+    // Update notification counts
+    updateNotifications(files.value);
+
+    // Files count & change
+    const thisMonthFiles = files.value.filter(f => f.created_at && new Date(f.created_at).getMonth() === now.getMonth()).length;
+    const lastMonthFiles = files.value.filter(f => f.created_at && new Date(f.created_at).getMonth() === (now.getMonth() === 0 ? 11 : now.getMonth() - 1)).length;
     filesCount.value = thisMonthFiles;
     filesChange.value = calculatePercentage(thisMonthFiles, lastMonthFiles);
 
-    const resUsers = await axios.get("http://127.0.0.1:8000/users");
-    const users = resUsers.data;
-    const thisMonthUsers = users.filter(u => new Date(u.created_at).getMonth() === now.getMonth()).length;
-    const lastMonthUsers = users.filter(u => new Date(u.created_at).getMonth() === now.getMonth()-1).length;
+    // 🔹 Fetch Users
+    const resUsers = await axios.get("http://127.0.0.1:8000/api/users");
+    const users = Array.isArray(resUsers.data) ? resUsers.data : resUsers.data.data || [];
+
+    const thisMonthUsers = users.filter(u => u.created_at && new Date(u.created_at).getMonth() === now.getMonth()).length;
+    const lastMonthUsers = users.filter(u => u.created_at && new Date(u.created_at).getMonth() === (now.getMonth() === 0 ? 11 : now.getMonth() - 1)).length;
     usersCount.value = thisMonthUsers;
     usersChange.value = calculatePercentage(thisMonthUsers, lastMonthUsers);
 
-    const resFolders = await axios.get("http://127.0.0.1:8000/folders");
-    const folders = resFolders.data;
-    const thisMonthFolders = folders.filter(f => new Date(f.created_at).getMonth() === now.getMonth()).length;
-    const lastMonthFolders = folders.filter(f => new Date(f.created_at).getMonth() === now.getMonth()-1).length;
+    // Fetch Folders
+    const resFolders = await axios.get("http://127.0.0.1:8000/api/folders");
+
+    // Correctly extract the array
+    folders.value = resFolders.data.folders || [];
+
+    console.log("Fetched folders:", folders.value); // should show all folders
+
+    const current = new Date();
+    const thisMonthIndex = current.getMonth();
+    const lastMonthIndex = thisMonthIndex === 0 ? 11 : thisMonthIndex - 1;
+
+    function parseDBDate(str) {
+      if (!str) return null;
+      const [datePart, timePart] = str.split(" ");
+      if (!datePart || !timePart) return null;
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour, min, sec] = timePart.split(":").map(Number);
+      return new Date(year, month - 1, day, hour, min, sec); // month-1 because JS months 0-11
+    }
+
+    const thisMonthFolders = folders.value.filter(f => {
+      const d = new Date(f.created_at); // works with ISO format
+      return !isNaN(d) && d.getMonth() === thisMonthIndex;
+    }).length;
+
+    const lastMonthFolders = folders.value.filter(f => {
+      const d = new Date(f.created_at);
+      return !isNaN(d) && d.getMonth() === lastMonthIndex;
+    }).length;
+
     foldersCount.value = thisMonthFolders;
     foldersChange.value = calculatePercentage(thisMonthFolders, lastMonthFolders);
 
-    const resLogs = await axios.get("http://127.0.0.1:8000/audit-logs");
-    recentLogs.value = resLogs.data;
+    console.log({ thisMonthFolders, lastMonthFolders, foldersCount: foldersCount.value, foldersChange: foldersChange.value });
 
+    // 🔹 Fetch Audit Logs
+    const resLogs = await axios.get("http://127.0.0.1:8000/api/audit-logs");
+    recentLogs.value = Array.isArray(resLogs.data) ? resLogs.data : resLogs.data.data || [];
+
+    // 🔹 Calculate trends and initialize charts
     calculateRequestTrends();
     initCharts();
     updateStorageChart();
@@ -444,6 +484,8 @@ onMounted(async () => {
     console.error("Error fetching data:", e);
   }
 });
+
+
 
 watch([files, selectedPeriod], () => {
   calculateRequestTrends();
@@ -514,7 +556,7 @@ function initDocTrendsChart() {
 async function initCharts() {
   try {
     // Fetch files from API
-    const resFiles = await axios.get("http://127.0.0.1:8000/file");
+    const resFiles = await axios.get("http://127.0.0.1:8000/api/file");
     const filesData = Array.isArray(resFiles.data) ? resFiles.data : resFiles.data.data || [];
 
     // Process data: group counts by month

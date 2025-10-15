@@ -14,6 +14,8 @@ import Permissions from "../components/permission.vue";
 import Logs from "../components/log.vue";
 import Recycle from "../components/recycle.vue";
 import Login from "../components/Login.vue";
+import SearchBar from "../components/SearchBar.vue";
+
 
 const routes = [
   { path: "/login", component: Login, meta: { title: "Login - Ortadel DMS" } },

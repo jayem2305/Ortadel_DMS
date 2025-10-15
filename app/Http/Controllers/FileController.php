@@ -221,17 +221,40 @@ class FileController extends Controller
             ], 403);
         }
 
-        // Decode JSON inputs
         $request->merge([
-            'reviewer_groups' => json_decode($request->input('reviewer_groups'), true),
-            'reviewer_individual' => json_decode($request->input('reviewer_individual'), true),
-            'reviewer_role' => json_decode($request->input('reviewer_role'), true),
-            'approver_groups' => json_decode($request->input('approver_groups'), true),
-            'approver_individual' => json_decode($request->input('approver_individual'), true),
-            'approver_role' => json_decode($request->input('approver_role'), true),
-            'keywords' => json_decode($request->input('keywords'), true),
-            'categories' => json_decode($request->input('categories'), true),
+            'reviewer_groups' => is_array($request->input('reviewer_groups'))
+                ? $request->input('reviewer_groups')
+                : json_decode($request->input('reviewer_groups'), true),
+
+            'reviewer_individual' => is_array($request->input('reviewer_individual'))
+                ? $request->input('reviewer_individual')
+                : json_decode($request->input('reviewer_individual'), true),
+
+            'reviewer_role' => is_array($request->input('reviewer_role'))
+                ? $request->input('reviewer_role')
+                : json_decode($request->input('reviewer_role'), true),
+
+            'approver_groups' => is_array($request->input('approver_groups'))
+                ? $request->input('approver_groups')
+                : json_decode($request->input('approver_groups'), true),
+
+            'approver_individual' => is_array($request->input('approver_individual'))
+                ? $request->input('approver_individual')
+                : json_decode($request->input('approver_individual'), true),
+
+            'approver_role' => is_array($request->input('approver_role'))
+                ? $request->input('approver_role')
+                : json_decode($request->input('approver_role'), true),
+
+            'keywords' => is_array($request->input('keywords'))
+                ? $request->input('keywords')
+                : json_decode($request->input('keywords'), true),
+
+            'categories' => is_array($request->input('categories'))
+                ? $request->input('categories')
+                : json_decode($request->input('categories'), true),
         ]);
+
 
         // Validation
         $data = $request->validate([

@@ -35,7 +35,7 @@ class GroupController extends Controller
                     'assigned_color' => $group->assigned_color,
                     'logo' => $group->logo,
                     'users_count' => $group->users_count,
-                    'created_by' => $group->created_by,
+                    'created_by' => Auth::id(),
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -116,7 +116,7 @@ class GroupController extends Controller
                     'status' => $group->status,
                     'assigned_color' => $group->assigned_color,
                     'logo' => $group->logo,
-                    'created_by' => $group->created_by,
+                    'created_by' => Auth::id(),
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -140,10 +140,10 @@ class GroupController extends Controller
     {
         try {
             $group->load([
-                'users' => function($query) {
+                'users' => function ($query) {
                     $query->select('users.id', 'users.first_name', 'users.last_name', 'users.email', 'users.status');
                 },
-                'roles' => function($query) {
+                'roles' => function ($query) {
                     $query->select('roles.id', 'roles.name', 'roles.description', 'roles.color');
                 }
             ]);
@@ -173,7 +173,7 @@ class GroupController extends Controller
                             'color' => $role->color,
                         ];
                     }),
-                    'created_by' => $group->created_by,
+                    'created_by' => Auth::id(),
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -259,6 +259,7 @@ class GroupController extends Controller
                     'logo' => $group->logo,
                     'updated_by' => $group->updated_by,
                     'updated_at' => $group->updated_at,
+                    'created_by' => Auth::id(),
                 ]
             ])
                 ->header('Access-Control-Allow-Origin', '*')
