@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
 
-class File extends Model
+class Version extends Model
 {
     use HasFactory;
 
@@ -26,14 +26,13 @@ class File extends Model
         'file_size',
         'status',
         'related_document',
+
     ];
 
     protected $casts = [
-        'related_document' => 'array',
         'locked' => 'boolean',
         'file_size' => 'integer',
         'expiration_date' => 'datetime',
-
     ];
 
     protected $encryptable = [
@@ -45,7 +44,9 @@ class File extends Model
         'keywords',
         'org_filename',
         'file',
-        'file_type'
+        'file_type',
+        'related_document'
+
     ];
 
     /**
