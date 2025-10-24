@@ -91,7 +91,7 @@
     <!-- Main Content -->
     <div class="flex-1 flex flex-col">
       <header
-        :class="`bg-white shadow-sm grid grid-cols-[1fr_2fr_1fr] items-center px-6 border-b border-gray-200 text-sm h-${isDashboard ? '22' : '16'}`"
+        :class="`bg-white shadow-sm grid grid-cols-[1fr_2fr_1fr] items-center px-6 border-b border-gray-200 text-sm h-${isDashboard ? '28' : '16'}`"
       >
         <!-- Left: Add User + Plus + Calendar -->
         <div class="flex items-center space-x-3">
@@ -191,7 +191,7 @@
 
         <!-- Center: Search Bar -->
         <div class="flex justify-center">
-          <div class="relative w-full max-w-2xl">
+          <!--<div class="relative w-full max-w-2xl">
             <input
               type="text"
               placeholder="Search..."
@@ -211,7 +211,9 @@
                 d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.25 5.25a7.5 7.5 0 0011.4 11.4z"
               />
             </svg>
-          </div>
+          </div>-->
+          <SearchBar v-model="searchText" />
+
         </div>
 
         <!-- Right: Notifications + Profile -->
@@ -304,13 +306,14 @@ import NewFileModal from '../Pop-up/NewFileModal.vue';
 import NewFolderModal from '../Pop-up/NewFolderModal.vue';
 import NewBatchModal from '../Pop-up/NewBatchModal.vue';
 import NewScannedModal from '../Pop-up/NewScannedModal.vue';
+import SearchBar from './SearchBar.vue'
 export default {
   name: "SidebarLayout",
-  components: { CreateUserModal, CreateGroupModal, CreateRoleModal, NewFileModal, NewFolderModal, NewBatchModal, NewScannedModal }, 
+  components: {   SearchBar, CreateUserModal, CreateGroupModal, CreateRoleModal, NewFileModal, NewFolderModal, NewBatchModal, NewScannedModal }, 
   setup() {
     const sidebarOpen = ref(true);
     const openDropdown = ref(null); // Tracks which dropdown is open
-
+    const searchText = ref('')
     const userStore = useUserStore();
     const router = useRouter();
     const route = useRoute();
@@ -500,6 +503,7 @@ export default {
       handleUserSuccess,
       handleGroupSuccess,
       handleRoleSuccess,
+      searchText,
     };
   },
 };

@@ -8,7 +8,7 @@
       <div class="w-64 p-4 overflow-y-auto border-r border-gray-200">
         <h2 class="text-lg font-semibold mb-4 text-[#2563EB]">Folders</h2>
 
-        <!-- Loading State -->
+        <!-- Loading -->
         <div v-if="loadingFolders" class="flex flex-col justify-center items-center h-32 gap-2">
           <svg class="animate-spin h-6 w-6 text-[#3B82F6]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -178,7 +178,7 @@ import { ref, onMounted, computed } from "vue";
 import { modalState } from "../stores/modal";
 import axios from "axios";
 
-/* Recursive FolderNode */
+/* Recursive FolderNode component */
 const FolderNode = {
   name: "FolderNode",
   props: ["folder", "selectedFolder", "disableSelection", "level"],
@@ -199,43 +199,45 @@ const FolderNode = {
       <div
         class="flex items-center space-x-2 cursor-pointer p-1 rounded hover:bg-gray-100"
         :class="{ 'bg-blue-100': selectedFolder?.id === folder.id }"
-        @click="selectFolderNode"
+        :style="{ paddingLeft: level * 16 + 'px' }"
       >
-        <!-- Expand/Collapse -->
         <button
           v-if="folder.children && folder.children.length"
           @click.stop="toggleExpand"
-          class="text-gray-500 hover:text-gray-700"
+          class="text-gray-500 hover:text-gray-700 flex items-center justify-center w-5 h-5"
         >
-          <svg v-if="expanded" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg
+            :class="{ 'transform rotate-90': expanded }"
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 transition-transform duration-200"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <!-- Folder Icon -->
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
 
-        <!-- Name -->
-        <span>{{ folder.name }}</span>
+        <span @click="selectFolderNode">{{ folder.name }}</span>
       </div>
 
-      <!-- Children -->
-      <ul v-if="expanded && folder.children && folder.children.length" class="ml-4 mt-1">
-        <FolderNode
-          v-for="child in folder.children"
-          :key="child.id"
-          :folder="child"
-          :selected-folder="selectedFolder"
-          :disable-selection="disableSelection"
-          :level="level + 1"
-          @select-folder="$emit('select-folder', $event)"
-        />
-      </ul>
+      <transition name="collapse">
+        <ul v-show="expanded && folder.children && folder.children.length" class="mt-1">
+          <FolderNode
+            v-for="child in folder.children"
+            :key="child.id"
+            :folder="child"
+            :selected-folder="selectedFolder"
+            :disable-selection="disableSelection"
+            :level="level + 1"
+            @select-folder="$emit('select-folder', $event)"
+          />
+        </ul>
+      </transition>
     </li>
   `,
 };
@@ -271,7 +273,6 @@ export default {
 
     const selectFolder = (folder) => {
       selectedFolder.value = folder;
-      console.log("Selected folder ID:", folder.id);
     };
 
     const selectUser = (id) => {
@@ -293,6 +294,13 @@ export default {
       accessRoles.value = accessRoles.value.filter((r) => r !== id);
     };
 
+    const normalizeFolders = (data) => {
+      if (Array.isArray(data)) return data;
+      if (data?.data) return data.data;
+      if (data?.folders) return data.folders;
+      return [];
+    };
+
     const createFolder = async () => {
       try {
         const parentId = selectedFolder.value ? Number(selectedFolder.value.id) : null;
@@ -305,7 +313,7 @@ export default {
           access_roles: accessRoles.value,
         };
 
-        await axios.post("http://127.0.0.1:8000/folders", payload);
+        await axios.post("http://127.0.0.1:8000/api/folders", payload);
 
         folderName.value = "";
         folderDescription.value = "";
@@ -314,8 +322,8 @@ export default {
         accessGroups.value = [];
         accessRoles.value = [];
 
-        const foldersRes = await axios.get("http://127.0.0.1:8000/folders");
-        folders.value = foldersRes.data;
+        const foldersRes = await axios.get("http://127.0.0.1:8000/api/folders");
+        folders.value = normalizeFolders(foldersRes.data);
 
         closeModal();
       } catch (err) {
@@ -323,19 +331,26 @@ export default {
       }
     };
 
-    const buildTree = (arr) => {
-      const map = {};
-      arr.forEach((f) => (map[f.id] = { ...f, children: [] }));
-      const roots = [];
-      arr.forEach((f) => {
-        if (f.parent_id && f.parent_id !== 0) {
-          map[f.parent_id]?.children.push(map[f.id]);
-        } else {
-          roots.push(map[f.id]);
-        }
-      });
-      return roots;
-    };
+const buildTree = (arr) => {
+  if (!Array.isArray(arr)) return [];
+  const map = {};
+  const roots = [];
+
+  arr.forEach((folder) => {
+    map[folder.id] = { ...folder, children: [] };
+  });
+
+  arr.forEach((folder) => {
+    if (folder.parent_id !== null && map[folder.parent_id]) {
+      map[folder.parent_id].children.push(map[folder.id]);
+    } else {
+      roots.push(map[folder.id]);
+    }
+  });
+
+  return roots;
+};
+
 
     const rootFolders = computed(() => buildTree(folders.value));
 
@@ -343,16 +358,18 @@ export default {
       try {
         loadingFolders.value = true;
         const [usersRes, groupsRes, rolesRes, foldersRes] = await Promise.all([
-          axios.get("http://127.0.0.1:8000/users"),
-          axios.get("http://127.0.0.1:8000/groups"),
-          axios.get("http://127.0.0.1:8000/roles"),
-          axios.get("http://127.0.0.1:8000/folders"),
+          axios.get("http://127.0.0.1:8000/api/users"),
+          axios.get("http://127.0.0.1:8000/api/groups"),
+          axios.get("http://127.0.0.1:8000/api/roles"),
+          axios.get("http://127.0.0.1:8000/api/folders"),
         ]);
 
         users.value = usersRes.data.map((u) => ({ ...u, role: u.role?.name || "No Role" }));
-        groups.value = groupsRes.data.groups || [];
+        groups.value = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data.groups || [];
+        console.log("groupsRes.data =", groupsRes.data);
+
         roles.value = rolesRes.data;
-        folders.value = foldersRes.data;
+        folders.value = normalizeFolders(foldersRes.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -389,3 +406,22 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Collapse animation for nested folders */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.2s ease;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 1000px;
+  opacity: 1;
+}
+</style>

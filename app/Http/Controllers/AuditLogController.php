@@ -49,14 +49,15 @@ class AuditLogController extends Controller
                     'action' => strtolower($log->action),
                     'module' => $log->module ?? 'N/A',
                     'description' => $log->description,
-                    'performed_at' => $log->performed_at, // safe
+                    'performed_at' => $log->performed_at,
                     'user' => $log->user ?? ['first_name' => 'Unknown', 'last_name' => ''],
                     'target_user_id' => $log->target_user_id,
-                    'created_at' => $log->created_at ? $log->created_at->toDateTimeString() : null,
+                    'created_at' => $log->created_at?->toDateTimeString(),
                 ];
             });
-
+        //dd($logs->description);
         return response()->json($logs);
+
     }
 
 

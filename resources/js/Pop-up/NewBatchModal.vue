@@ -233,7 +233,7 @@ export default {
       formData.append("owner_name", loggedInUserId);
 
       try {
-        const response = await axios.post("http://127.0.0.1:8000/batchfile", formData, {
+        const response = await axios.post("http://127.0.0.1:8000/api/batchfile", formData, {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: (e) => {
             const percent = Math.round((e.loaded * 100) / e.total);
@@ -282,31 +282,34 @@ export default {
     };
 
     const fetchFolders = async () => {
-      try {
-        const res = await axios.get("http://127.0.0.1:8000/folders");
-        const flat = res.data;
-        const buildTree = (folders) => {
-          const map = {};
-          const roots = [];
-          folders.forEach((f) => {
-            f.children = [];
-            f.open = f.parent_id === null;
-            f.parent = null;
-            map[f.id] = f;
-          });
-          folders.forEach((f) => {
-            if (f.parent_id && map[f.parent_id]) {
-              f.parent = map[f.parent_id];
-              map[f.parent_id].children.push(f);
-            } else if (!f.parent_id) roots.push(f);
-          });
-          return roots;
-        };
-        folders.value = buildTree(flat);
-      } catch (e) {
-        console.error(e);
-      }
+  try {
+    const res = await axios.get("http://127.0.0.1:8000/api/folders");
+    const flat = Array.isArray(res.data.folders) ? res.data.folders : [];
+    
+    const buildTree = (foldersArray) => {
+      const map = {};
+      const roots = [];
+      foldersArray.forEach((f) => {
+        f.children = [];
+        f.open = f.parent_id === null;
+        f.parent = null;
+        map[f.id] = f;
+      });
+      foldersArray.forEach((f) => {
+        if (f.parent_id && map[f.parent_id]) {
+          f.parent = map[f.parent_id];
+          map[f.parent_id].children.push(f);
+        } else if (!f.parent_id) roots.push(f);
+      });
+      return roots;
     };
+
+    folders.value = buildTree(flat);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
 
     onMounted(fetchFolders);
 

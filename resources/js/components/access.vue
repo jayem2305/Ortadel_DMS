@@ -50,8 +50,12 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="item in filteredData" :key="item.id">
-              <td v-for="col in columns" :key="col" class="px-4 py-3 text-sm text-gray-700">
-                {{ item[col] || '-' }}
+              <td
+                v-for="col in columns"
+                :key="col"
+                class="px-4 py-3 text-sm text-gray-700"
+              >
+                {{ item[col] !== undefined && item[col] !== null ? item[col] : '-' }}
               </td>
               <td class="px-4 py-3 text-sm">
                 <button
@@ -81,6 +85,7 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { modalState } from '../stores/modal'
 
 // Tabs
 const tabs = ['Assigned Group', 'Assigned Role']
@@ -94,9 +99,10 @@ const searchQuery = ref('')
 
 // API endpoints
 const apiMap = {
-  'Assigned Group': 'http://127.0.0.1:8000/groups',
-  'Assigned Role': 'http://127.0.0.1:8000/roles',
-  Users: 'http://127.0.0.1:8000/users'
+  'Assigned Group': 'http://127.0.0.1:8000/api/groups',
+  'Assigned Role': 'http://127.0.0.1:8000/api/roles',
+  Users: 'http://127.0.0.1:8000/api/users',
+  GroupRoles: 'http://127.0.0.1:8000/api/group_role'
 }
 
 // Columns mapping
@@ -105,34 +111,67 @@ const columnsMap = {
   'Assigned Role': ['name', 'type', 'description', 'members']
 }
 
-// Fetch data
 const fetchData = async () => {
   loading.value = true
   try {
+    // Fetch main data
     const res = await axios.get(apiMap[currentTab.value])
     const usersRes = await axios.get(apiMap.Users)
-    const users = usersRes.data || []
+    const groupRolesRes = await axios.get(apiMap.GroupRoles)
 
-    let items = currentTab.value === 'Assigned Group'
-      ? res.data.groups || []
-      : res.data || []
+    const users = Array.isArray(usersRes.data) ? usersRes.data : []
+    const groupRoles = Array.isArray(groupRolesRes.data)
+      ? groupRolesRes.data
+      : groupRolesRes.data?.data || [] // fallback if backend uses pagination
 
+    console.log("📦 Users:", users)
+    console.log("📦 GroupRoles:", groupRoles)
+    console.log("📦 Raw API response:", res.data)
+
+    let items = []
+    if (currentTab.value === 'Assigned Group') {
+      items = Array.isArray(res.data) ? res.data : res.data.groups || []
+    } else {
+      items = Array.isArray(res.data) ? res.data : res.data.roles || []
+    }
+
+    // Combine data and count members
     items = items.map(item => {
-      let members = 0
+      let memberNames = []
+      let groupRoleCount = 0
+
+      // 1️⃣ Count via user.groups
+      const userMembers =
+        currentTab.value === 'Assigned Group'
+          ? users.filter(
+              u =>
+                Array.isArray(u.groups) &&
+                u.groups.some(
+                  g => g.toLowerCase().trim() === item.name.toLowerCase().trim()
+                )
+            )
+          : users.filter(u => u.role_id === item.id)
+
+      memberNames = userMembers.map(u => `${u.first_name} ${u.last_name}`)
+
+      // 2️⃣ Count via group_role table
       if (currentTab.value === 'Assigned Group') {
-        // Count users whose groups array includes this group name
-        members = users.filter(u => u.groups.includes(item.name)).length
-      } else {
-        // For roles, count users with role_id matching item.id
-        members = users.filter(u => u.role_id === item.id).length
+        groupRoleCount = groupRoles.filter(gr => gr.group_id === item.id).length
       }
-      return { ...item, members }
+
+      const totalMembers = memberNames.length + groupRoleCount
+
+      console.log(
+        `✅ ${item.name}: Users=${memberNames.length}, group_role=${groupRoleCount}, Total=${totalMembers}`
+      )
+
+      return { ...item, members: totalMembers, memberNames }
     })
 
     dataList.value = items
     columns.value = columnsMap[currentTab.value]
   } catch (err) {
-    console.error(`Failed to fetch ${currentTab.value}:`, err)
+    console.error(`❌ Failed to fetch ${currentTab.value}:`, err)
     dataList.value = []
     columns.value = []
   } finally {
@@ -150,12 +189,23 @@ const filteredData = computed(() => {
   )
 })
 
+// Modal open handlers
+const openModalAddGroup = () => {
+  modalState.isAddGroupOpen = true
+}
+const openModalAddRole = () => {
+  modalState.isAddRoleOpen = true
+}
+
 // Actions
-const addData = () => alert(`Add ${currentTab.value}`)
-const editData = (item) => alert(`Edit ${currentTab.value}: ${item.name}`)
-const deleteData = (item) => alert(`Delete ${currentTab.value}: ${item.name}`)
+const addData = () => {
+  if (currentTab.value === 'Assigned Group') openModalAddGroup()
+  else if (currentTab.value === 'Assigned Role') openModalAddRole()
+}
+
+const editData = item => alert(`Edit ${currentTab.value}: ${item.name}`)
+const deleteData = item => alert(`Delete ${currentTab.value}: ${item.name}`)
 
 onMounted(fetchData)
 watch(currentTab, fetchData)
 </script>
-

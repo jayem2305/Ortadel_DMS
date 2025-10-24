@@ -150,7 +150,7 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 const generateUserId = async () => {
   try {
-    const res = await axios.get("http://127.0.0.1:8000/users/last-id");
+    const res = await axios.get("http://127.0.0.1:8000/api/users/last-id");
     const lastId = res.data.last_id; // get last numeric part
 
     // If there is no user yet, start from 1
@@ -204,7 +204,7 @@ const filteredGroups = computed(() =>
 
 const fetchGroups = async () => {
   try {
-    const res = await axios.get("http://127.0.0.1:8000/groups");
+    const res = await axios.get("http://127.0.0.1:8000/api/groups");
     groups.value = res.data.groups.map(g => g.name);
   } catch (err) {
     console.error("Failed to fetch groups:", err);
@@ -214,7 +214,7 @@ const fetchGroups = async () => {
 
 const fetchRoles = async () => {
   try {
-    const res = await axios.get("http://127.0.0.1:8000/roles");
+    const res = await axios.get("http://127.0.0.1:8000/api/roles");
     roles.value = res.data.map(r => ({ id: r.id, name: r.name }));
   } catch (err) {
     console.error("Failed to fetch roles:", err);

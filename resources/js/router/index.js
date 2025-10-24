@@ -14,6 +14,9 @@ import Permissions from "../components/permission.vue";
 import Logs from "../components/log.vue";
 import Recycle from "../components/recycle.vue";
 import Login from "../components/Login.vue";
+import SearchBar from "../components/SearchBar.vue";
+import Viefile from "../components/view/FileDetails.vue";
+
 
 const routes = [
   { path: "/login", component: Login, meta: { title: "Login - Ortadel DMS" } },
@@ -33,6 +36,7 @@ const routes = [
       { path: "log", component: Logs, meta: { title: "Audit Logs - Ortadel DMS" } },
       { path: "recycle", component: Recycle, meta: { title: "Recycle Bin - Ortadel DMS" } },
       { path: "settings", component: Settings, meta: { title: "Settings - Ortadel DMS" } },
+      { path: "files/:id", name: "fileDetails", component: Viefile, meta:{ title: "File Details - Ortadel DMS" } },
     ],
   },
 ];
