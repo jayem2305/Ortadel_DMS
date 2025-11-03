@@ -1,0 +1,96 @@
+Table,Column Name,Data Type,Nullable,Key/Constraint,Description
+users,id,BIGINT,No,PK,auto-increment,User ID
+users,user_id,LONGTEXT,No,,Custom user identifier
+users,first_name,LONGTEXT,No,,First name
+users,last_name,LONGTEXT,No,,Last name
+users,email,LONGTEXT,No,UNIQUE,Email address
+users,email_hash,STRING,No,UNIQUE,SHA256 hash of email
+users,assigned_color,LONGTEXT,Yes,,User color
+users,role_id,BIGINT,No,,Role reference
+users,groups,LONGTEXT,Yes,,Group IDs
+users,password,STRING,No,,Hashed password
+users,email_verified_at,TIMESTAMP,Yes,,Email verified timestamp
+users,remember_token,STRING,Yes,,Remember token
+users,created_by,BIGINT,Yes,,Created by user ID
+users,last_updated_by,BIGINT,Yes,,Last updated by user ID
+users,created_at,TIMESTAMP,No,,Created timestamp
+users,updated_at,TIMESTAMP,No,,Updated timestamp
+roles,id,BIGINT,No,PK,auto-increment,Role ID
+roles,name,TEXT,No,,Role name (encrypted)
+roles,type,TEXT,No,,Role type (encrypted)
+roles,color,TEXT,No,,Role color (encrypted)
+roles,description,TEXT,Yes,,Role description (encrypted)
+roles,scope,TEXT,No,,Role scope (encrypted)
+roles,assign_to_groups,BOOLEAN,No,,Assignable to groups
+roles,assign_to_users,BOOLEAN,No,,Assignable to users
+roles,created_by,BIGINT,Yes,,Created by user ID
+roles,updated_by,BIGINT,Yes,,Updated by user ID
+roles,created_at,TIMESTAMP,No,,Created timestamp
+roles,updated_at,TIMESTAMP,No,,Updated timestamp
+permissions,id,BIGINT,No,PK,auto-increment,Permission ID
+permissions,module,TEXT,No,,Module name (encrypted)
+permissions,name,TEXT,No,,Permission name (encrypted)
+permissions,description,TEXT,Yes,,Description (encrypted)
+permissions,created_by,BIGINT,Yes,,Created by user ID
+permissions,updated_by,BIGINT,Yes,,Updated by user ID
+permissions,created_at,TIMESTAMP,No,,Created timestamp
+permissions,updated_at,TIMESTAMP,No,,Updated timestamp
+folders,id,BIGINT,No,PK,auto-increment,Folder ID
+folders,name,TEXT,No,,Folder name (encrypted)
+folders,description,TEXT,Yes,,Description (encrypted)
+folders,parent_id,BIGINT,Yes,,Parent folder ID
+folders,access_users,JSON,Yes,,User access IDs
+folders,access_groups,JSON,Yes,,Group access IDs
+folders,access_roles,JSON,Yes,,Role access IDs
+folders,created_by,BIGINT,Yes,,Created by user ID
+folders,updated_by,BIGINT,Yes,,Updated by user ID
+folders,created_at,TIMESTAMP,No,,Created timestamp
+folders,updated_at,TIMESTAMP,No,,Updated timestamp
+files,id,BIGINT,No,PK,auto-increment,File ID
+files,name,STRING(512),No,,File name (encrypted)
+files,description,TEXT,Yes,,Description (encrypted)
+files,expiration_date,DATE,Yes,,Expiration date (encrypted)
+files,owner_name,STRING(512),No,,Owner name (encrypted)
+files,folder_id,BIGINT,Yes,,Folder ID
+files,assign_reviewer,TEXT,Yes,,Reviewer IDs (encrypted)
+files,assign_approver,TEXT,Yes,,Approver IDs (encrypted)
+files,locked,BOOLEAN,No,,Locked status
+files,keywords,STRING(512),Yes,,Keywords (encrypted)
+files,org_filename,STRING(512),Yes,,Original filename (encrypted)
+files,file,STRING(512),Yes,,File path (encrypted)
+files,file_type,STRING(512),Yes,,File type (encrypted)
+files,file_size,INTEGER,Yes,,File size (encrypted)
+files,status,STRING(50),No,,Status (default: Released)
+files,category_id,BIGINT,Yes,,Category ID
+files,created_at,TIMESTAMP,No,,Created timestamp
+files,updated_at,TIMESTAMP,No,,Updated timestamp
+groups,id,BIGINT,No,PK,auto-increment,Group ID
+groups,name,TEXT,No,,Group name (encrypted)
+groups,description,TEXT,Yes,,Description (encrypted)
+groups,status,ENUM,No,,Status: active/inactive
+groups,created_by,STRING,Yes,,Created by user ID
+groups,updated_by,STRING,Yes,,Updated by user ID
+groups,assigned_color,TEXT,Yes,,Group color (encrypted)
+groups,logo,LONGTEXT,Yes,,Logo (base64 or path)
+groups,folder_id,BIGINT,Yes,,Folder ID
+groups,is_default_group,BOOLEAN,No,,Is default group
+groups,workflow_participant,BOOLEAN,No,,Workflow participant
+groups,inherit_permissions,BOOLEAN,No,,Inherit permissions
+groups,created_at,TIMESTAMP,No,,Created timestamp
+groups,updated_at,TIMESTAMP,No,,Updated timestamp
+categories,id,BIGINT,No,PK,auto-increment,Category ID
+categories,name,TEXT,No,,Category name (encrypted)
+categories,description,TEXT,Yes,,Description (encrypted)
+categories,status,ENUM,No,,Status: active/inactive
+categories,created_by,STRING,Yes,,Created by user ID
+categories,updated_by,STRING,Yes,,Updated by user ID
+categories,created_at,TIMESTAMP,No,,Created timestamp
+categories,updated_at,TIMESTAMP,No,,Updated timestamp
+keywords,id,BIGINT,No,PK,auto-increment,Keyword ID
+keywords,name,TEXT,No,,Keyword name (encrypted)
+keywords,description,TEXT,Yes,,Description (encrypted)
+keywords,status,ENUM,No,,Status: active/inactive
+keywords,created_by,STRING,Yes,,Created by user ID
+keywords,updated_by,STRING,Yes,,Updated by user ID
+keywords,created_at,TIMESTAMP,No,,Created timestamp
+keywords,updated_at,TIMESTAMP,No,,Updated timestamp

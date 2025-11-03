@@ -210,6 +210,13 @@
                         :key="groupName"
                         class="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
                       >
+                        <!-- Show group logo if available -->
+                        <img
+                          v-if="getGroupLogo(groupName)"
+                          :src="getGroupLogo(groupName)"
+                          :alt="groupName"
+                          class="w-4 h-4 rounded-full object-cover"
+                        />
                         {{ groupName }}
                         <button
                           type="button"
@@ -241,7 +248,7 @@
                       />
                     </div>
 
-                    <!-- Group Options -->
+                    <!-- Group Options with Logos -->
                     <div v-if="filteredGroups.length > 0" class="py-1">
                       <div
                         v-for="group in filteredGroups"
@@ -250,7 +257,22 @@
                         class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center justify-between"
                         :class="formData.groups.includes(group.name) ? 'bg-blue-100 text-blue-700 font-medium' : ''"
                       >
-                        <span>{{ group.name }}</span>
+                        <div class="flex items-center gap-2">
+                          <!-- Display group logo in dropdown -->
+                          <img
+                            v-if="group.logo"
+                            :src="group.logo"
+                            :alt="group.name"
+                            class="w-6 h-6 rounded-full object-cover"
+                          />
+                          <div
+                            v-else
+                            class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500"
+                          >
+                            {{ group.name.charAt(0).toUpperCase() }}
+                          </div>
+                          <span>{{ group.name }}</span>
+                        </div>
                         <svg
                           v-if="formData.groups.includes(group.name)"
                           class="w-4 h-4 text-blue-600"
@@ -276,33 +298,39 @@
             <button
               type="button"
               @click="closeModal"
-              class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              class="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
             >
-              <svg
-                v-if="isSubmitting"
-                class="animate-spin w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
+              <svg v-if="isSubmitting" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
               <span>{{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update User' : 'Create User') }}</span>
             </button>
           </div>
         </form>
+
+        <!-- Confirmation Modal for Missing Required Fields -->
+        <ConfirmationModal
+          :isOpen="showConfirmation"
+          title="Required Fields Missing"
+          :message="confirmationMessage"
+          confirmText="OK"
+          :cancelText="null"
+          @confirm="closeConfirmation"
+          @cancel="closeConfirmation"
+        >
+          <template v-if="confirmationFields.length > 0">
+            <ul class="list-disc list-inside mt-2 text-sm text-gray-700">
+              <li v-for="field in confirmationFields" :key="field">{{ field }}</li>
+            </ul>
+          </template>
+        </ConfirmationModal>
       </div>
     </div>
   </transition>
@@ -311,6 +339,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
+import ConfirmationModal from './ConfirmationModal.vue'
 
 // Props and Emits
 const props = defineProps({
@@ -333,6 +362,9 @@ const showConfirmPassword = ref(false)
 const isGroupDropdownOpen = ref(false)
 const groupSearchQuery = ref('')
 const groupDropdownRef = ref(null)
+const showConfirmation = ref(false)
+const confirmationMessage = ref('')
+const confirmationFields = ref([])
 
 const formData = ref({
   user_id: '',
@@ -404,14 +436,18 @@ const resetForm = () => {
 }
 
 const generateUserId = async () => {
+  console.log('🔄 [CreateUserModal] Generating user ID...')
   try {
     const response = await axios.get('http://127.0.0.1:8000/api/users/last-id')
+    console.log('✅ [CreateUserModal] User ID response:', response.data)
     // Use the next_user_id provided by the backend
     formData.value.user_id = response.data.next_user_id || 'DMS_0001'
+    console.log('🆔 [CreateUserModal] User ID set to:', formData.value.user_id)
   } catch (error) {
-    console.error('Failed to generate user ID:', error)
+    console.error('❌ [CreateUserModal] Failed to generate user ID:', error)
     // Fallback to a safe default
     formData.value.user_id = 'DMS_0001'
+    console.log('🆔 [CreateUserModal] User ID fallback to: DMS_0001')
   }
 }
 
@@ -427,10 +463,13 @@ const fetchRoles = async () => {
 
 const fetchGroups = async () => {
   try {
+    console.log('🔄 [CreateUserModal] Fetching groups...')
     const response = await axios.get('http://127.0.0.1:8000/api/groups')
     availableGroups.value = response.data || []
+    console.log('✅ [CreateUserModal] Groups fetched:', availableGroups.value.length)
+    console.log('📦 [CreateUserModal] Groups data:', availableGroups.value)
   } catch (error) {
-    console.error('Failed to fetch groups:', error)
+    console.error('❌ [CreateUserModal] Failed to fetch groups:', error)
     availableGroups.value = []
   }
 }
@@ -451,8 +490,37 @@ const removeGroup = (groupName) => {
   }
 }
 
+const getGroupLogo = (groupName) => {
+  const group = availableGroups.value.find(g => g.name === groupName)
+  return group?.logo || null
+}
+
 const submitForm = async () => {
   if (isSubmitting.value) return
+  
+  // Validation: Check required fields
+  const missingFields = []
+  if (!formData.value.first_name || !formData.value.first_name.trim()) missingFields.push('First Name')
+  if (!formData.value.last_name || !formData.value.last_name.trim()) missingFields.push('Last Name')
+  if (!formData.value.email || !formData.value.email.trim()) missingFields.push('Email Address')
+  if (!formData.value.role_id) missingFields.push('Role')
+  
+  // Password validation only for new users
+  if (!isEditMode.value) {
+    if (!formData.value.password || !formData.value.password.trim()) missingFields.push('Password')
+    if (!formData.value.password_confirmation || !formData.value.password_confirmation.trim()) missingFields.push('Confirm Password')
+    else if (formData.value.password !== formData.value.password_confirmation) {
+      errors.password_confirmation = 'Passwords do not match'
+      return
+    }
+  }
+  
+  if (missingFields.length > 0) {
+    showConfirmation.value = true
+    confirmationMessage.value = 'Please fill in all required fields:'
+    confirmationFields.value = missingFields
+    return
+  }
   
   isSubmitting.value = true
   
@@ -514,9 +582,36 @@ const handleClickOutside = (event) => {
   }
 }
 
-// Watch for edit data changes
+// Watch for when modal opens
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    // If not in edit mode, generate a new user ID
+    if (!props.editData) {
+      generateUserId()
+    }
+  }
+})
+
+// Watch for edit data changes  
 watch(() => props.editData, (newData) => {
+  console.log('🔍 [CreateUserModal] Watch triggered')
+  console.log('📥 Edit data received:', newData)
+  
   if (newData) {
+    // Extract group names from group objects
+    let groupNames = []
+    if (Array.isArray(newData.groups) && newData.groups.length > 0) {
+      console.log('📦 Groups in edit data:', newData.groups)
+      groupNames = newData.groups.map(g => {
+        const name = (typeof g === 'object' && g !== null && g.name) ? g.name : g
+        console.log(`  → Extracting: ${name} from`, g)
+        return name
+      }).filter(name => name)
+      console.log('✅ Extracted group names:', groupNames)
+    } else {
+      console.log('⚠️ No groups in edit data or not an array:', newData.groups)
+    }
+    
     formData.value = {
       user_id: newData.user_id || '',
       first_name: newData.first_name || '',
@@ -526,16 +621,33 @@ watch(() => props.editData, (newData) => {
       password_confirmation: '',
       assigned_color: newData.assigned_color || '#3B82F6',
       role_id: newData.role_id || '',
-      groups: newData.groups || []
+      groups: groupNames
+    }
+    
+    console.log('📝 Form data set:', formData.value)
+    console.log('👥 Groups in form:', formData.value.groups)
+  } else {
+    // If editData is null (create mode), generate new user ID
+    if (props.isOpen) {
+      generateUserId()
     }
   }
 }, { immediate: true })
 
+const closeConfirmation = () => {
+  showConfirmation.value = false
+  confirmationMessage.value = ''
+  confirmationFields.value = []
+}
+
 // Lifecycle
 onMounted(() => {
+  console.log('🎬 [CreateUserModal] Component mounted')
   fetchRoles()
   fetchGroups()
-  if (!isEditMode.value) {
+  // Generate user ID if modal is open and in create mode
+  if (props.isOpen && !props.editData) {
+    console.log('🆔 [CreateUserModal] Generating user ID on mount')
     generateUserId()
   }
   document.addEventListener('click', handleClickOutside)

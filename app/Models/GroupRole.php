@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 class GroupRole extends Pivot
 {
     protected $table = 'group_role';
-    protected $fillable = ['group_id', 'role_id'];//, 'created_by', 'updated_by'
+    protected $fillable = ['group_id', 'role_id', 'created_by', 'updated_by'];
     public $timestamps = true;
 
     // Auto-fill created_by / updated_by
@@ -16,18 +16,18 @@ class GroupRole extends Pivot
     {
         parent::boot();
 
-        /* static::creating(function ($model) {
-             if (Auth::check()) {
-                 $model->created_by = Auth::id();
-                 $model->updated_by = Auth::id();
-             }
-         });
+        static::creating(function ($model) {
+            if (Auth::check()) {
+                $model->created_by = Auth::id();
+                $model->updated_by = Auth::id();
+            }
+        });
 
-         static::updating(function ($model) {
-             if (Auth::check()) {
-                 $model->updated_by = Auth::id();
-             }
-         });*/
+        static::updating(function ($model) {
+            if (Auth::check()) {
+                $model->updated_by = Auth::id();
+            }
+        });
     }
 
     // Relationships
@@ -41,13 +41,13 @@ class GroupRole extends Pivot
         return $this->belongsTo(Role::class);
     }
 
-    /*    public function creator()
-        {
-            return $this->belongsTo(User::class, 'created_by');
-        }
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
-        public function updater()
-        {
-            return $this->belongsTo(User::class, 'updated_by');
-        }*/
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }

@@ -91,9 +91,12 @@
               </svg>
             </button>
           </div>
-          <p class="text-right text-sm text-[#2563EB] hover:underline cursor-pointer mt-2">
+          <router-link
+            to="/forgot-password"
+            class="text-right text-sm text-[#2563EB] hover:underline cursor-pointer mt-2 block"
+          >
             Forgot password?
-          </p>
+          </router-link>
         </div>
 
         <!-- Login Button -->
@@ -156,6 +159,17 @@ export default {
       loading: false,
       showPassword: false,
     };
+  },
+  mounted() {
+    // Set page title and favicon
+    document.title = "Login - Ortadel DMS";
+    
+    // Set favicon (icon in browser tab)
+    let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png';
+    link.rel = 'icon';
+    link.href = 'https://ortadeltech.com/assets/images/ORTADEL_logo.png';
+    document.getElementsByTagName('head')[0].appendChild(link);
   },
   methods: {
     togglePasswordVisibility() {

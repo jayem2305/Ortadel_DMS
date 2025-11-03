@@ -55,7 +55,12 @@ class Group extends Model
 
     public function setDescriptionAttribute($value)
     {
-        $this->attributes['description'] = $value ? Crypt::encryptString($value) : null;
+        // Handle empty strings and null values
+        if ($value === '' || $value === null) {
+            $this->attributes['description'] = null;
+        } else {
+            $this->attributes['description'] = Crypt::encryptString($value);
+        }
     }
     public function getDescriptionAttribute($value)
     {

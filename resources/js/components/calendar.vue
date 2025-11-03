@@ -11,9 +11,14 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import axios from 'axios'
 import { format } from 'date-fns'
+import { useUserStore } from '../stores/user'
 
 export default {
   components: { FullCalendar },
+  setup() {
+    const userStore = useUserStore()
+    return { userStore }
+  },
   data() {
     return {
       calendarOptions: {
@@ -37,10 +42,18 @@ export default {
     }
   },
   mounted() {
+    // Check permission before loading events
+    if (!this.userStore.hasPermission('View Calendar')) {
+      console.warn('User does not have permission to view calendar');
+      return;
+    }
     this.loadEvents()
   },
   methods: {
     async loadEvents() {
+      if (!this.userStore.hasPermission('View Calendar')) {
+        return;
+      }
       try {
         const foldersRes = await axios.get('http://127.0.0.1:8000/api/folders')
         const foldersArray = foldersRes.data?.data || foldersRes.data?.folders || []

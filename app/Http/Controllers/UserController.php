@@ -61,11 +61,29 @@ class UserController extends Controller
     public function index()
     {
         try {
-            // Eager load relationships
+            // Eager load relationships including groups
             $users = User::with(['role', 'creator', 'updater'])->get();
+
+            // Load groups manually for each user
+            $users->load('groups');
+
+            // DEBUG: Log what we're getting
+            \Log::info('=== USER INDEX DEBUG ===');
+            \Log::info('Total users: ' . $users->count());
+            foreach ($users as $u) {
+                // Force relationship access
+                $userGroups = $u->groups()->get();
+                \Log::info("User {$u->id}: Groups loaded: " . $userGroups->count());
+                foreach ($userGroups as $g) {
+                    \Log::info("  - Group {$g->id}: {$g->name}, logo: {$g->logo}");
+                }
+            }
 
             // Transform to ensure consistent data format (accessors handle decryption)
             $users = $users->map(function ($user) {
+                // Force get groups from relationship, not attribute
+                $userGroups = $user->groups()->get();
+
                 return [
                     'id' => $user->id,
                     'user_id' => $user->user_id, // Will be decrypted automatically
@@ -73,6 +91,7 @@ class UserController extends Controller
                     'last_name' => $user->last_name, // Will be decrypted automatically
                     'email' => $user->email, // Will be decrypted automatically
                     'assigned_color' => $user->assigned_color, // Will be decrypted automatically
+                    'status' => $user->status,
                     'role_id' => $user->role_id,
                     'role' => $user->role ? [
                         'id' => $user->role->id,
@@ -81,13 +100,24 @@ class UserController extends Controller
                         'color' => $user->role->color, // Will be decrypted automatically
                         'description' => $user->role->description, // Will be decrypted automatically
                     ] : null,
-                    'groups' => $user->groups, // Will be decrypted automatically
+                    'groups' => $userGroups->map(function ($group) {
+                        return [
+                            'id' => $group->id,
+                            'name' => $group->name, // Will be decrypted automatically
+                            'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
+                            'assigned_color' => $group->assigned_color,
+                        ];
+                    })->toArray(),
                     'created_by' => $user->created_by,
                     'last_updated_by' => $user->last_updated_by,
                     'created_at' => $user->created_at,
                     'updated_at' => $user->updated_at,
                 ];
             });
+
+            // DEBUG: Log the final transformed data
+            \Log::info('=== TRANSFORMED DATA ===');
+            \Log::info(json_encode($users->first(), JSON_PRETTY_PRINT));
 
             return response()->json($users)
                 ->header('Access-Control-Allow-Origin', '*')
@@ -179,13 +209,36 @@ class UserController extends Controller
                 'password' => $validated['password'], // auto-hashed by cast
                 'assigned_color' => $validated['assigned_color'] ?? '#3B82F6',
                 'role_id' => $validated['role_id'],
-                'groups' => $validated['groups'] ?? [],
                 'created_by' => Auth::id() ?? 1,
                 'last_updated_by' => Auth::id() ?? 1,
             ]);
 
+            // Sync groups if provided (by group names)
+            if (isset($validated['groups']) && is_array($validated['groups']) && count($validated['groups']) > 0) {
+                // Find group IDs by names
+                $groupIds = \App\Models\Group::whereIn('id', function ($query) use ($validated) {
+                    foreach (\App\Models\Group::all() as $group) {
+                        if (in_array($group->name, $validated['groups'])) {
+                            $query->orWhere('id', $group->id);
+                        }
+                    }
+                })->pluck('id')->toArray();
+
+                // Actually, let's do this properly - decrypt and compare
+                $groupIds = [];
+                foreach (\App\Models\Group::all() as $group) {
+                    if (in_array($group->name, $validated['groups'])) {
+                        $groupIds[] = $group->id;
+                    }
+                }
+
+                if (count($groupIds) > 0) {
+                    $user->groups()->sync($groupIds);
+                }
+            }
+
             // Load relationships for response
-            $user->load('role');
+            $user->load(['role', 'groups']);
 
             // Log the action
             AuditLog::create([
@@ -196,6 +249,9 @@ class UserController extends Controller
                 'performed_by' => Auth::id() ?? 1,
                 'performed_at' => now(),
             ]);
+
+            // Get groups from relationship
+            $userGroups = $user->groups()->get();
 
             return response()->json([
                 'message' => 'User created successfully',
@@ -214,7 +270,14 @@ class UserController extends Controller
                         'color' => $user->role->color,
                         'description' => $user->role->description,
                     ] : null,
-                    'groups' => $user->groups,
+                    'groups' => $userGroups->map(function ($group) {
+                        return [
+                            'id' => $group->id,
+                            'name' => $group->name,
+                            'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
+                            'assigned_color' => $group->assigned_color,
+                        ];
+                    })->toArray(),
                     'created_at' => $user->created_at,
                     'updated_at' => $user->updated_at,
                 ]
@@ -240,8 +303,10 @@ class UserController extends Controller
                 'sometimes',
                 'email',
                 function ($attribute, $value, $fail) use ($user) {
-                    if (User::where('email_hash', hash('sha256', $value))
-                        ->where('id', '!=', $user->id)->exists()) {
+                    if (
+                        User::where('email_hash', hash('sha256', $value))
+                            ->where('id', '!=', $user->id)->exists()
+                    ) {
                         $fail('The ' . $attribute . ' has already been taken.');
                     }
                 }
@@ -264,10 +329,35 @@ class UserController extends Controller
                 unset($validated['password']);
             }
 
+            // Extract groups before updating (since it's not a fillable attribute)
+            $groups = $validated['groups'] ?? null;
+            unset($validated['groups']);
+
             $validated['last_updated_by'] = Auth::id() ?? 1;
 
             $user->update($validated);
-            $user->load('role');
+
+            // Sync groups if provided (by group names)
+            if ($groups !== null && is_array($groups)) {
+                if (count($groups) === 0) {
+                    // If empty array, detach all groups
+                    $user->groups()->detach();
+                } else {
+                    // Find group IDs by names (decrypt and compare)
+                    $groupIds = [];
+                    foreach (\App\Models\Group::all() as $group) {
+                        if (in_array($group->name, $groups)) {
+                            $groupIds[] = $group->id;
+                        }
+                    }
+
+                    if (count($groupIds) > 0) {
+                        $user->groups()->sync($groupIds);
+                    }
+                }
+            }
+
+            $user->load(['role', 'groups']);
 
             // Log the action
             AuditLog::create([
@@ -278,6 +368,9 @@ class UserController extends Controller
                 'performed_by' => Auth::id() ?? 1,
                 'performed_at' => now(),
             ]);
+
+            // Get groups from relationship
+            $userGroups = $user->groups()->get();
 
             return response()->json([
                 'message' => 'User updated successfully',
@@ -296,7 +389,14 @@ class UserController extends Controller
                         'color' => $user->role->color,
                         'description' => $user->role->description,
                     ] : null,
-                    'groups' => $user->groups,
+                    'groups' => $userGroups->map(function ($group) {
+                        return [
+                            'id' => $group->id,
+                            'name' => $group->name,
+                            'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
+                            'assigned_color' => $group->assigned_color,
+                        ];
+                    })->toArray(),
                     'updated_at' => $user->updated_at,
                 ]
             ]);
@@ -350,8 +450,8 @@ class UserController extends Controller
             // Get all users and find the highest numeric part in user_id
             $users = User::all();
             $maxNumeric = 0;
-            
-            foreach($users as $user) {
+
+            foreach ($users as $user) {
                 if (preg_match('/DMS_(\d+)/', $user->user_id, $matches)) {
                     $numeric = (int) $matches[1];
                     if ($numeric > $maxNumeric) {
@@ -359,7 +459,7 @@ class UserController extends Controller
                     }
                 }
             }
-            
+
             $nextId = $maxNumeric + 1;
             $nextUserId = 'DMS_' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 

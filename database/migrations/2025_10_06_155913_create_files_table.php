@@ -32,6 +32,10 @@ return new class extends Migration {
             $table->string('file_type', 512)->nullable();  // encrypted
             $table->integer('file_size')->nullable();      // encrypted
             $table->string('status', 50)->default('Released'); // new status field
+
+            // Category - foreign key constraint will be added later
+            $table->unsignedBigInteger('category_id')->nullable();
+
             $table->timestamps();
         });
     }

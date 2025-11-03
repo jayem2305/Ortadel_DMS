@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'developer.only' => \App\Http\Middleware\DeveloperOnly::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'permission.any' => \App\Http\Middleware\CheckAnyPermission::class,
+            'permission.all' => \App\Http\Middleware\CheckAllPermissions::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

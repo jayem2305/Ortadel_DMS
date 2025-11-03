@@ -99,12 +99,29 @@ class PermissionService
             'CREATE_FOLDERS' => 'Create Folders',
             'EDIT_FOLDERS' => 'Edit Folders',
             'DELETE_FOLDERS' => 'Delete Folders',
+            'VIEW_FILE_VERSIONS' => 'View File Versions',
+            'RESTORE_FILE_VERSIONS' => 'Restore File Versions',
+            'DELETE_FILE_VERSIONS' => 'Delete File Versions',
+            'VIEW_SHARED_LINKS' => 'View Shared Links',
+            'CREATE_SHARED_LINKS' => 'Create Shared Links',
+            'DELETE_SHARED_LINKS' => 'Delete Shared Links',
+            'VIEW_FAVORITES' => 'View Favorites',
+            'ADD_TO_FAVORITES' => 'Add to Favorites',
+            'REMOVE_FROM_FAVORITES' => 'Remove from Favorites',
+            'VIEW_RECENT_FILES' => 'View Recent Files',
+            'VIEW_SHARED_WITH_ME' => 'View Shared With Me',
+            'UPLOAD_FILES' => 'Upload Files',
+            'DOWNLOAD_FILES' => 'Download Files',
+            'MOVE_FILES' => 'Move Files',
+            'COPY_FILES' => 'Copy Files',
             
-            // User Management
+            // Lists of Users (User Management)
             'VIEW_USERS' => 'View Users',
             'CREATE_USERS' => 'Create Users',
             'EDIT_USERS' => 'Edit Users',
             'DELETE_USERS' => 'Delete Users',
+            
+            // User Management (Groups, Roles, Permissions)
             'VIEW_GROUPS' => 'View Groups',
             'CREATE_GROUPS' => 'Create Groups',
             'EDIT_GROUPS' => 'Edit Groups',
@@ -135,6 +152,10 @@ class PermissionService
             'CREATE_EVENTS' => 'Create Events',
             'CREATE_PUBLIC_EVENTS' => 'Create Public Events',
             'EDIT_PUBLIC_EVENTS' => 'Edit Public Events',
+            'EDIT_EVENTS' => 'Edit Events',
+            'DELETE_EVENTS' => 'Delete Events',
+            'MOVE_EVENTS' => 'Move Events',
+            'DELETE_PUBLIC_EVENTS' => 'Delete Public Events',
             
             // Logs & Audit
             'VIEW_LOGS' => 'View Logs',
@@ -142,11 +163,14 @@ class PermissionService
             // Recycle Bin
             'VIEW_RECYCLE_BIN' => 'View Recycle Bin',
             'RESTORE' => 'Restore',
+            'EMPTY_RECYCLE_BIN' => 'Empty Recycle Bin',
+            'DELETE_PERMANENTLY' => 'Delete Permanently',
             
             // Settings
             'VIEW_PROFILES' => 'View Profiles',
             'VIEW_USER_LOGS' => 'View User Logs',
             'VIEW_VERSION_INFO' => 'View Version Info',
+            'EDIT_SETTINGS' => 'Edit Settings',
         ];
     }
 }

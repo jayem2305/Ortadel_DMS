@@ -32,8 +32,7 @@ use Illuminate\Support\Facades\Schema;
  * - Column existence checks ensure compatibility with different migration states
  * - Named constraints for easier identification and management
  */
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      * 
@@ -160,6 +159,16 @@ return new class extends Migration
         } catch (\Exception $e) {
             // Foreign key might already exist, skip gracefully
         }
+        // FILES TABLE: Add foreign key constraints
+        try {
+            Schema::table('files', function (Blueprint $table) {
+                if (Schema::hasColumn('files', 'category_id')) {
+                    $table->foreign('category_id', 'files_category_id_fk')->references('id')->on('categories')->nullOnDelete();
+                }
+            });
+        } catch (\Exception $e) {
+            // Foreign key might already exist, skip gracefully
+        }
     }
 
     /**
@@ -232,6 +241,12 @@ return new class extends Migration
             Schema::table('audit_logs', function (Blueprint $table) {
                 $table->dropForeign(['target_user_id']);
                 $table->dropForeign(['performed_by']);
+            });
+        }
+        // Remove foreign key constraints from audit_logs table (if it exists)
+        if (Schema::hasTable('files')) {
+            Schema::table('files', function (Blueprint $table) {
+                $table->dropForeign(['category_id']);
             });
         }
     }

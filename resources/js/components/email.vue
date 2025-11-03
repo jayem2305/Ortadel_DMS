@@ -20,6 +20,8 @@
 
         <!-- Add button -->
         <button
+          v-if="(currentTab === 'Keywords' && userStore.hasPermission('Create Tags')) || 
+                (currentTab === 'Categories' && userStore.hasPermission('Create Categories'))"
           @click="addItem"
           class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
         >
@@ -64,8 +66,20 @@
                 <span v-else>{{ item[col] || '-' }}</span>
               </td>
               <td class="px-4 py-3 flex gap-2">
-                <button @click="editItem(item)" class="px-2 py-1 bg-yellow-400 text-white rounded text-xs hover:bg-yellow-500">Edit</button>
-                <button @click="deleteItem(item)" class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">Delete</button>
+                <button 
+                  v-if="(currentTab === 'Keywords' && userStore.hasPermission('Edit Tags')) || 
+                        (currentTab === 'Categories' && userStore.hasPermission('Edit Categories'))"
+                  @click="editItem(item)" 
+                  class="px-2 py-1 bg-yellow-400 text-white rounded text-xs hover:bg-yellow-500">
+                  Edit
+                </button>
+                <button 
+                  v-if="(currentTab === 'Keywords' && userStore.hasPermission('Delete Tags')) || 
+                        (currentTab === 'Categories' && userStore.hasPermission('Delete Categories'))"
+                  @click="deleteItem(item)" 
+                  class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
+                  Delete
+                </button>
               </td>
             </tr>
           </tbody>
@@ -102,10 +116,25 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '../stores/user'
+
+const userStore = useUserStore()
+
+// Available tabs based on permissions
+const availableTabs = computed(() => {
+  const accessible = []
+  if (userStore.hasPermission('View Tags')) {
+    accessible.push('Keywords')
+  }
+  if (userStore.hasPermission('View Categories')) {
+    accessible.push('Categories')
+  }
+  return accessible
+})
 
 // Tabs
-const tabs = ['Keywords', 'Categories']
-const currentTab = ref('Keywords')
+const tabs = computed(() => availableTabs.value)
+const currentTab = ref(availableTabs.value[0] || 'Keywords')
 
 // Table data
 const dataList = ref([])
@@ -148,6 +177,18 @@ const fetchMemberCount = async (items, key) => {
 
 // Fetch data
 const fetchData = async () => {
+  // Permission check
+  const permissionMap = {
+    'Keywords': 'View Tags',
+    'Categories': 'View Categories'
+  }
+  
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    console.warn(`User does not have permission to view ${currentTab.value}`);
+    dataList.value = [];
+    return;
+  }
+  
   loading.value = true
   try {
     const res = await axios.get(apiMap[currentTab.value])
@@ -184,9 +225,41 @@ const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
 const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
 
 // Actions
-const addItem = () => alert(`Add ${currentTab.value.slice(0,-1)}`)
-const editItem = (item) => alert(`Edit ${currentTab.value.slice(0,-1)}: ${item.id}`)
-const deleteItem = (item) => alert(`Delete ${currentTab.value.slice(0,-1)}: ${item.id}`)
+const addItem = () => {
+  const permissionMap = {
+    'Keywords': 'Create Tags',
+    'Categories': 'Create Categories'
+  }
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to create ${currentTab.value.toLowerCase()}`);
+    return;
+  }
+  alert(`Add ${currentTab.value.slice(0,-1)}`)
+}
+
+const editItem = (item) => {
+  const permissionMap = {
+    'Keywords': 'Edit Tags',
+    'Categories': 'Edit Categories'
+  }
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to edit ${currentTab.value.toLowerCase()}`);
+    return;
+  }
+  alert(`Edit ${currentTab.value.slice(0,-1)}: ${item.id}`)
+}
+
+const deleteItem = (item) => {
+  const permissionMap = {
+    'Keywords': 'Delete Tags',
+    'Categories': 'Delete Categories'
+  }
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to delete ${currentTab.value.toLowerCase()}`);
+    return;
+  }
+  alert(`Delete ${currentTab.value.slice(0,-1)}: ${item.id}`)
+}
 
 onMounted(fetchData)
 watch(currentTab, () => { currentPage.value = 1; fetchData() })

@@ -5,7 +5,7 @@
       <div class="flex justify-between items-center border-b pb-3 mb-6">
         <nav class="flex space-x-6">
           <button
-            v-for="tab in tabs"
+            v-for="tab in availableTabs"
             :key="tab"
             @click="currentTab = tab; currentPage = 1"
             :class="[
@@ -37,7 +37,7 @@
         </div>
 
         <button
-          v-if="currentTab === 'Keywords'"
+          v-if="currentTab === 'Keywords' && userStore.hasPermission('Create Tags')"
           @click="openAddKeywordModal"
           class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm shadow hover:bg-blue-700 transition"
         >
@@ -45,7 +45,7 @@
         </button>
 
         <button
-          v-if="currentTab === 'Categories'"
+          v-if="currentTab === 'Categories' && userStore.hasPermission('Create Categories')"
           @click="openAddCategoryModal"
           class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow hover:bg-green-700 transition"
         >
@@ -84,12 +84,14 @@
               <td class="px-4 py-3">
                 <div class="flex gap-2">
                   <button
+                    v-if="(currentTab === 'Keywords' && userStore.hasPermission('Edit Tags')) || (currentTab === 'Categories' && userStore.hasPermission('Edit Categories'))"
                     @click="openModal(item)"
                     class="flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-xs transition"
                   >
                     <i class="fa-solid fa-pen"></i> Edit
                   </button>
                   <button
+                    v-if="(currentTab === 'Keywords' && userStore.hasPermission('Delete Tags')) || (currentTab === 'Categories' && userStore.hasPermission('Delete Categories'))"
                     @click="deleteItem(item)"
                     class="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition"
                   >
@@ -215,9 +217,27 @@ import { ref, watch, computed, onMounted } from 'vue'
 import axios from 'axios'
 import AddKeywordModal from '../Pop-up/AddKeywordModal.vue'
 import AddCategoryModal from '../Pop-up/AddCategoryModal.vue'
+import { useUserStore } from '../stores/user'
 
-const tabs = ['Keywords', 'Categories']
-const currentTab = ref('Keywords')
+const userStore = useUserStore()
+
+// Available tabs based on permissions
+const availableTabs = computed(() => {
+  const accessible = []
+  
+  if (userStore.hasPermission('View Tags')) {
+    accessible.push('Keywords')
+  }
+  
+  if (userStore.hasPermission('View Categories')) {
+    accessible.push('Categories')
+  }
+  
+  return accessible
+})
+
+// Set current tab to first available
+const currentTab = ref(availableTabs.value[0] || 'Keywords')
 const dataList = ref([])
 const columns = ref([])
 const loading = ref(false)

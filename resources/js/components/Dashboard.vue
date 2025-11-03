@@ -258,12 +258,15 @@
 import { ref, onMounted, computed, watch } from "vue";
 import axios from "axios";
 import Chart from "chart.js/auto";
+import { useUserStore } from "../stores/user";
 import {
   FilePlus as ILucideFilePlus,
   Pencil as ILucidePencil,
   Trash2 as ILucideTrash2,
   Info as ILucideInfo
 } from "lucide-vue-next";
+
+const userStore = useUserStore();
 
 let requestsChart, docTrendsChart, storageChart, cpuChart, memoryChart, diskChart;
 
@@ -410,6 +413,12 @@ function updateNotifications(filesList) {
 
 // 🔹 Fetch data
 onMounted(async () => {
+  // Check if user has permission to view dashboard
+  if (!userStore.hasPermission('View Dashboard')) {
+    console.warn('User does not have permission to view dashboard');
+    return;
+  }
+  
   try {
     const now = new Date();
 

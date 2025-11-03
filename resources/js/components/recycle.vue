@@ -94,7 +94,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useUserStore } from '../stores/user'
+
+const userStore = useUserStore()
+
+// Check permissions on mount
+onMounted(() => {
+  if (!userStore.hasPermission('View Deleted Files')) {
+    console.warn('User does not have permission to view recycle bin');
+    deletedItems.value = [];
+  }
+})
 
 // Example data
 const deletedItems = ref([
@@ -127,6 +138,10 @@ const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.v
 watch(searchQuery, () => currentPage.value = 1)
 
 const restoreItem = (item) => {
+  if (!userStore.hasPermission('Restore Files')) {
+    alert('You do not have permission to restore files');
+    return;
+  }
   alert(`Restored: ${item.name}`)
   deletedItems.value = deletedItems.value.filter(i => i.id !== item.id)
 }

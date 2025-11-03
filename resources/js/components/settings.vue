@@ -102,7 +102,22 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import axios from 'axios'
 
-const tabs = ['Profile', 'Logs of Users', 'Version Information']
+// Available tabs based on permissions
+const availableTabs = computed(() => {
+  const accessible = ['Profile'] // Profile is always accessible
+  
+  if (userStore.hasPermission('View Logs')) {
+    accessible.push('Logs of Users')
+  }
+  
+  if (userStore.hasPermission('View Version Info')) {
+    accessible.push('Version Information')
+  }
+  
+  return accessible
+})
+
+const tabs = computed(() => availableTabs.value)
 const currentTab = ref('Profile')
 
 // User
@@ -144,6 +159,11 @@ const nextPage = () => { if(currentPage.value < totalPages.value) currentPage.va
 // Fetch audit logs
 const fetchAuditLogs = async () => {
   if (!user.value.user_id) return
+  if (!userStore.hasPermission('View Logs')) {
+    console.warn('User does not have permission to view logs');
+    auditLogs.value = [];
+    return;
+  }
   loadingLogs.value = true
   try {
     const res = await axios.get(`http://127.0.0.1:8000/audit-logs?user_id=${user.value.user_id}`)

@@ -5,7 +5,7 @@
       <div class="border-b border-gray-200 mb-4">
         <nav class="-mb-px flex space-x-6">
           <button
-            v-for="tab in tabs"
+            v-for="tab in availableTabs"
             :key="tab"
             @click="currentTab = tab"
             :class="currentTab === tab
@@ -86,10 +86,27 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { modalState } from '../stores/modal'
+import { useUserStore } from '../stores/user'
 
-// Tabs
-const tabs = ['Assigned Group', 'Assigned Role']
-const currentTab = ref('Assigned Group')
+const userStore = useUserStore()
+
+// Available tabs based on permissions
+const availableTabs = computed(() => {
+  const accessible = []
+  
+  if (userStore.hasPermission('View Groups')) {
+    accessible.push('Assigned Group')
+  }
+  
+  if (userStore.hasPermission('View Roles')) {
+    accessible.push('Assigned Role')
+  }
+  
+  return accessible
+})
+
+// Set current tab to first available
+const currentTab = ref(availableTabs.value[0] || 'Assigned Group')
 
 // Table data
 const dataList = ref([])
@@ -112,6 +129,19 @@ const columnsMap = {
 }
 
 const fetchData = async () => {
+  // Permission check
+  const permissionMap = {
+    'Assigned Group': 'View Groups',
+    'Assigned Role': 'View Roles'
+  }
+  
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    console.warn(`User does not have permission to view ${currentTab.value}`);
+    dataList.value = [];
+    loading.value = false;
+    return;
+  }
+  
   loading.value = true
   try {
     // Fetch main data
@@ -199,12 +229,45 @@ const openModalAddRole = () => {
 
 // Actions
 const addData = () => {
-  if (currentTab.value === 'Assigned Group') openModalAddGroup()
-  else if (currentTab.value === 'Assigned Role') openModalAddRole()
+  if (currentTab.value === 'Assigned Group') {
+    if (!userStore.hasPermission('Create Groups')) {
+      alert('You do not have permission to create groups');
+      return;
+    }
+    openModalAddGroup()
+  }
+  else if (currentTab.value === 'Assigned Role') {
+    if (!userStore.hasPermission('Create Roles')) {
+      alert('You do not have permission to create roles');
+      return;
+    }
+    openModalAddRole()
+  }
 }
 
-const editData = item => alert(`Edit ${currentTab.value}: ${item.name}`)
-const deleteData = item => alert(`Delete ${currentTab.value}: ${item.name}`)
+const editData = item => {
+  const permissionMap = {
+    'Assigned Group': 'Edit Groups',
+    'Assigned Role': 'Edit Roles'
+  }
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to edit ${currentTab.value.toLowerCase()}`);
+    return;
+  }
+  alert(`Edit ${currentTab.value}: ${item.name}`)
+}
+
+const deleteData = item => {
+  const permissionMap = {
+    'Assigned Group': 'Delete Groups',
+    'Assigned Role': 'Delete Roles'
+  }
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to delete ${currentTab.value.toLowerCase()}`);
+    return;
+  }
+  alert(`Delete ${currentTab.value}: ${item.name}`)
+}
 
 onMounted(fetchData)
 watch(currentTab, fetchData)

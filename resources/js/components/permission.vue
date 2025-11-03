@@ -278,7 +278,7 @@ const getViewPermission = () => {
   }
 }
 
-// Only show tabs that the user can actually access
+// Only show tabs that the user can actually access based on permissions
 const availableTabs = computed(() => {
   const accessibleTabs = []
   
@@ -359,15 +359,18 @@ const fetchData = async () => {
     if (currentTab.value === 'Groups') {
       dataList.value = responseData
       columns.value = ['name', 'description', 'status', 'assigned_color', 'logo']
+      console.log(`✅ Loaded ${dataList.value.length} ${currentTab.value}`)
+      console.log('[PERMISSION] Groups data sample:', dataList.value[0])
     } else if (currentTab.value === 'Roles') {
       dataList.value = responseData
       columns.value = ['name', 'type', 'color', 'description', 'created_at']
+      console.log(`✅ Loaded ${dataList.value.length} ${currentTab.value}`)
     } else {
       dataList.value = responseData
       columns.value = ['name', 'module', 'description']
+      console.log(`✅ Loaded ${dataList.value.length} ${currentTab.value}`)
     }
     
-    console.log(`✅ Loaded ${dataList.value.length} ${currentTab.value}`)
     currentPage.value = 1
   } catch (err) {
     console.error(`❌ Failed to load ${currentTab.value}:`, err.message)
@@ -429,11 +432,19 @@ const openEditModal = async (item) => {
   // For Groups and Roles, fetch full details before opening modal
   if (currentTab.value === 'Groups') {
     try {
+      console.log('[PERMISSION] Fetching group details for ID:', item.id)
+      console.log('[PERMISSION] Item data from table:', item)
       const response = await axios.get(`http://127.0.0.1:8000/api/groups/${item.id}`)
+      console.log('[PERMISSION] Group API response:', response.data)
       editingItem.value = response.data.group || item
+      console.log('[PERMISSION] editingItem set to:', editingItem.value)
       showCreateGroupModal.value = true
     } catch (error) {
       console.error('Failed to fetch group details:', error)
+      console.error('Error status:', error.response?.status)
+      console.error('Error data:', error.response?.data)
+      console.error('Using table data instead:', item)
+      // Use the item from the table directly since we can't fetch details
       editingItem.value = item
       showCreateGroupModal.value = true
     }
@@ -464,7 +475,10 @@ const closeCreateGroupModal = () => {
 
 const handleGroupSuccess = (data) => {
   console.log('Group created/updated:', data)
-  fetchData() // Refresh the data
+  fetchData() // Refresh the groups data
+  
+  // Emit an event to refresh users list as well (if needed elsewhere)
+  window.dispatchEvent(new CustomEvent('groups-updated'))
 }
 
 // Role Modal functions
@@ -548,10 +562,23 @@ const confirmDelete = async () => {
     
   } catch (err) {
     console.error('❌ Error deleting item:', err)
+    console.error('Error details:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status
+    })
     
     if (err.response?.status === 403) {
       alert('You do not have permission to delete this item.')
+    } else if (err.response?.data?.message) {
+      alert(err.response.data.message)
+    } else {
+      alert('Failed to delete item. Please try again.')
     }
+    
+    // Close modal and reset state on error
+    showConfirmModal.value = false
+    itemToDelete.value = null
     
     // Reset processing state on error
     if (confirmModalRef.value) {

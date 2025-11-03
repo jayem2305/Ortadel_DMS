@@ -26,16 +26,24 @@ class GroupController extends Controller
     public function index()
     {
         try {
-            $groups = Group::withCount('users')->get()->map(function ($group) {
+            $groups = Group::with(['users'])->withCount('users')->get()->map(function ($group) {
                 return [
                     'id' => $group->id,
                     'name' => $group->name, // Will be decrypted by accessor
                     'description' => $group->description, // Will be decrypted by accessor
                     'status' => $group->status,
                     'assigned_color' => $group->assigned_color,
-                    'logo' => $group->logo,
+                    'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
                     'users_count' => $group->users_count,
-                    'created_by' => Auth::id(),
+                    'users' => $group->users->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'first_name' => $user->first_name,
+                            'last_name' => $user->last_name,
+                            'email' => $user->email,
+                        ];
+                    }),
+                    'created_by' => $group->created_by,
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -60,42 +68,87 @@ class GroupController extends Controller
     public function store(Request $request)
     {
         try {
+            \Log::info('[GroupController] Store method called');
+            \Log::info('[GroupController] Request has logo file: ' . ($request->hasFile('logo') ? 'YES' : 'NO'));
+            if ($request->hasFile('logo')) {
+                \Log::info('[GroupController] Logo file details: ', [
+                    'name' => $request->file('logo')->getClientOriginalName(),
+                    'size' => $request->file('logo')->getSize(),
+                    'mime' => $request->file('logo')->getMimeType(),
+                ]);
+            }
+            
+            // If frontend sent users as a JSON string (older clients), decode to array so validation passes
+            if ($request->has('users') && is_string($request->users)) {
+                $decoded = json_decode($request->users, true);
+                if (is_array($decoded)) {
+                    $request->merge(['users' => $decoded]);
+                }
+            }
             $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    function ($attribute, $value, $fail) {
+                        // Check if encrypted name already exists
+                        $exists = Group::all()->first(function ($group) use ($value) {
+                            return strtolower($group->name) === strtolower($value);
+                        });
+                        if ($exists) {
+                            $fail('A group with this name already exists.');
+                        }
+                    }
+                ],
                 'description' => 'nullable|string',
-                'status' => 'required|in:active,inactive',
+                // status is optional at creation; default to 'active' if not provided
+                'status' => 'nullable|in:active,inactive',
                 'assigned_color' => 'nullable|string|max:7', // hex color
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'users' => 'nullable|array',
                 'users.*' => 'integer|exists:users,id',
-                'roles' => 'nullable|array',
-                'roles.*' => 'integer|exists:roles,id',
+            ], [
+                'logo.image' => 'The logo must be an image file.',
+                'logo.mimes' => 'The logo must be a file of type: jpeg, png, jpg, gif.',
+                'logo.max' => 'The logo file size must not exceed 2MB.',
+                'name.required' => 'Group name is required.',
+                'users.*.exists' => 'One or more selected users do not exist.',
             ]);
 
             $logoPath = null;
             if ($request->hasFile('logo')) {
                 $logoPath = $request->file('logo')->store('groups', 'public');
+                \Log::info('[GroupController] Logo saved to: ' . $logoPath);
+            } else {
+                \Log::info('[GroupController] No logo file in request');
             }
 
             $group = Group::create([
                 'name' => $request->name,
                 'description' => $request->description,
-                'status' => $request->status,
+                'status' => $request->status ?? 'active',
                 'assigned_color' => $request->assigned_color ?? '#000000',
                 'logo' => $logoPath,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
             ]);
 
-            // Attach users if provided
+            // Attach users if provided with audit columns
             if ($request->has('users') && is_array($request->users)) {
-                $group->users()->attach($request->users);
+                $userData = [];
+                foreach ($request->users as $userId) {
+                    $userData[$userId] = [
+                        'created_by' => Auth::id(),
+                        'updated_by' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $group->users()->attach($userData);
             }
 
-            // Attach roles if provided
-            if ($request->has('roles') && is_array($request->roles)) {
-                $group->roles()->attach($request->roles);
-            }
+            // Refresh the model to get the properly decrypted values
+            $group->refresh();
 
             // Log the action
             AuditLog::create([
@@ -115,8 +168,8 @@ class GroupController extends Controller
                     'description' => $group->description,
                     'status' => $group->status,
                     'assigned_color' => $group->assigned_color,
-                    'logo' => $group->logo,
-                    'created_by' => Auth::id(),
+                    'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
+                    'created_by' => $group->created_by,
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -134,19 +187,12 @@ class GroupController extends Controller
     }
 
     /**
-     * Show a specific group with its users and roles
+     * Show a specific group with its users
      */
     public function show(Group $group)
     {
         try {
-            $group->load([
-                'users' => function ($query) {
-                    $query->select('users.id', 'users.first_name', 'users.last_name', 'users.email', 'users.status');
-                },
-                'roles' => function ($query) {
-                    $query->select('roles.id', 'roles.name', 'roles.description', 'roles.color');
-                }
-            ]);
+            $group->load(['users']);
 
             return response()->json([
                 'group' => [
@@ -155,7 +201,7 @@ class GroupController extends Controller
                     'description' => $group->description,
                     'status' => $group->status,
                     'assigned_color' => $group->assigned_color,
-                    'logo' => $group->logo,
+                    'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
                     'users' => $group->users->map(function ($user) {
                         return [
                             'id' => $user->id,
@@ -165,15 +211,7 @@ class GroupController extends Controller
                             'status' => $user->status,
                         ];
                     }),
-                    'roles' => $group->roles->map(function ($role) {
-                        return [
-                            'id' => $role->id,
-                            'name' => $role->name,
-                            'description' => $role->description,
-                            'color' => $role->color,
-                        ];
-                    }),
-                    'created_by' => Auth::id(),
+                    'created_by' => $group->created_by,
                     'updated_by' => $group->updated_by,
                     'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
@@ -196,16 +234,40 @@ class GroupController extends Controller
     public function update(Request $request, Group $group)
     {
         try {
+            // If frontend sent users as a JSON string (older clients), decode to array so validation passes
+            if ($request->has('users') && is_string($request->users)) {
+                $decoded = json_decode($request->users, true);
+                if (is_array($decoded)) {
+                    $request->merge(['users' => $decoded]);
+                }
+            }
             $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    function ($attribute, $value, $fail) use ($group) {
+                        // Check if encrypted name already exists (excluding current group)
+                        $exists = Group::where('id', '!=', $group->id)->get()->first(function ($g) use ($value) {
+                            return strtolower($g->name) === strtolower($value);
+                        });
+                        if ($exists) {
+                            $fail('A group with this name already exists.');
+                        }
+                    }
+                ],
                 'description' => 'nullable|string',
                 'status' => 'required|in:active,inactive',
                 'assigned_color' => 'nullable|string|max:7', // hex color
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'users' => 'nullable|array',
                 'users.*' => 'integer|exists:users,id',
-                'roles' => 'nullable|array',
-                'roles.*' => 'integer|exists:roles,id',
+            ], [
+                'logo.image' => 'The logo must be an image file.',
+                'logo.mimes' => 'The logo must be a file of type: jpeg, png, jpg, gif.',
+                'logo.max' => 'The logo file size must not exceed 2MB.',
+                'name.required' => 'Group name is required.',
+                'users.*.exists' => 'One or more selected users do not exist.',
             ]);
 
             $oldName = $group->name;
@@ -228,15 +290,22 @@ class GroupController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Sync users if provided
+            // Sync users if provided with audit columns
             if ($request->has('users')) {
-                $group->users()->sync($request->users ?? []);
+                $userData = [];
+                foreach (($request->users ?? []) as $userId) {
+                    $userData[$userId] = [
+                        'created_by' => Auth::id(),
+                        'updated_by' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $group->users()->sync($userData);
             }
 
-            // Sync roles if provided
-            if ($request->has('roles')) {
-                $group->roles()->sync($request->roles ?? []);
-            }
+            // Refresh the model to get the properly decrypted values
+            $group->refresh();
 
             // Log the action
             AuditLog::create([
@@ -256,10 +325,11 @@ class GroupController extends Controller
                     'description' => $group->description,
                     'status' => $group->status,
                     'assigned_color' => $group->assigned_color,
-                    'logo' => $group->logo,
+                    'logo' => $group->logo ? asset('storage/' . $group->logo) : null,
+                    'created_by' => $group->created_by,
                     'updated_by' => $group->updated_by,
+                    'created_at' => $group->created_at,
                     'updated_at' => $group->updated_at,
-                    'created_by' => Auth::id(),
                 ]
             ])
                 ->header('Access-Control-Allow-Origin', '*')
@@ -279,14 +349,13 @@ class GroupController extends Controller
     public function destroy(Group $group)
     {
         try {
-            // Check if group has users
-            if ($group->users()->count() > 0) {
-                return response()->json([
-                    'message' => 'Cannot delete group. Group has assigned users.',
-                ], 422);
-            }
-
             $groupName = $group->name;
+            $usersCount = $group->users()->count();
+
+            // Detach all users from the group (only removes relationship, doesn't delete users)
+            if ($usersCount > 0) {
+                $group->users()->detach();
+            }
 
             // Delete logo if exists
             if ($group->logo) {
@@ -298,7 +367,7 @@ class GroupController extends Controller
                 'action' => 'Deleted Group',
                 'module' => 'Group Management',
                 'target_user_id' => null,
-                'description' => "Deleted group: {$groupName}",
+                'description' => "Deleted group: {$groupName}" . ($usersCount > 0 ? " (unassigned {$usersCount} users)" : ""),
                 'performed_by' => Auth::id(),
                 'performed_at' => now(),
             ]);

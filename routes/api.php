@@ -22,6 +22,9 @@ use App\Http\Controllers\CategoryController;
 
 // Auth routes (no auth required)
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::get('/verify-reset-token/{token}', [AuthController::class, 'verifyResetToken']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Test route to check user authentication
 Route::get('/test-login', function () {
@@ -182,19 +185,39 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
-    //Apply RBAC OF KEYWORDS AND CATEGORIES
+    // Keywords Management Routes - Protected by permissions
+    Route::middleware('permission:View Tags')->group(function () {
+        Route::get('/keywords', [KeywordController::class, 'index']);
+        Route::get('/keywords/{id}', [KeywordController::class, 'show']);
+    });
 
-    // Keywords
-    Route::get('/keywords', [KeywordController::class, 'index']);
-    Route::post('/keywords', [KeywordController::class, 'store']);
-    Route::get('/keywords/{id}', [KeywordController::class, 'show']);
-    Route::put('/keywords/{id}', [KeywordController::class, 'update']);
-    Route::delete('/keywords/{id}', [KeywordController::class, 'destroy']);
+    Route::middleware('permission:Create Tags')->group(function () {
+        Route::post('/keywords', [KeywordController::class, 'store']);
+    });
 
-    // Categories
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::get('/categories/{id}', [CategoryController::class, 'show']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+    Route::middleware('permission:Edit Tags')->group(function () {
+        Route::put('/keywords/{id}', [KeywordController::class, 'update']);
+    });
+
+    Route::middleware('permission:Delete Tags')->group(function () {
+        Route::delete('/keywords/{id}', [KeywordController::class, 'destroy']);
+    });
+
+    // Categories Management Routes - Protected by permissions
+    Route::middleware('permission:View Categories')->group(function () {
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/categories/{id}', [CategoryController::class, 'show']);
+    });
+
+    Route::middleware('permission:Create Categories')->group(function () {
+        Route::post('/categories', [CategoryController::class, 'store']);
+    });
+
+    Route::middleware('permission:Edit Categories')->group(function () {
+        Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    });
+
+    Route::middleware('permission:Delete Categories')->group(function () {
+        Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+    });
 });

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Notifications\CustomResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -19,8 +20,7 @@ class User extends Authenticatable
         'password',
         'assigned_color',
         'role_id',      // FK to roles
-        'groups',
-        'status',       
+        'status',
         'created_by',
         'last_updated_by',
     ];
@@ -40,7 +40,6 @@ class User extends Authenticatable
         'last_name' => 'encrypted',
         'email' => 'encrypted',
         'assigned_color' => 'encrypted',
-        'groups' => 'encrypted:array',
     ];
 
     // 🔹 Automatically compute email_hash for fast lookups
@@ -57,7 +56,7 @@ class User extends Authenticatable
         });
     }
 
-    
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -92,7 +91,7 @@ class User extends Authenticatable
     }
 
     // 🔹 Permission Methods - FROM PREVIOUS SYSTEM
-    
+
     /**
      * Check if user has a specific permission
      */
@@ -109,7 +108,7 @@ class User extends Authenticatable
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -163,5 +162,27 @@ class User extends Authenticatable
         return $this->role->permissions()
             ->where('module', $module)
             ->exists();
+    }
+
+    /**
+     * Send the password reset notification with custom notification
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new CustomResetPasswordNotification($token));
+    }
+
+    /**
+     * Get the e-mail address where password reset links should be sent.
+     * Since email is encrypted, we need to decrypt it for the notification.
+     *
+     * @return string
+     */
+    public function getEmailForPasswordReset()
+    {
+        return $this->email; // This will automatically decrypt due to the cast
     }
 }
