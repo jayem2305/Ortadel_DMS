@@ -22,7 +22,7 @@
             v-if="userStore.hasPermission('Upload Files')"
             class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg shadow-md transition flex items-center gap-2"
           >
-            <i class="fas fa-upload"></i> Upload
+            <i class="fas fa-file-export"></i> Export
           </button>
         </div>
       </div>
@@ -164,28 +164,40 @@
               <div
                 v-for="file in displayedFiles"
                 :key="file.id"
-                class="group relative bg-gradient-to-br from-blue-50 to-sky-100 rounded-xl border border-blue-200 p-4 text-center shadow-sm hover:shadow-lg transition-all hover:-translate-y-1"
+                @click="goToFileDetails(file.id)"
+                class="group relative bg-gradient-to-br from-blue-50 to-sky-100 rounded-xl border border-blue-200 p-4 text-center shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer"
               >
                 <!-- Checkbox -->
-                <input type="checkbox" v-model="selectedItems" :value="{ type: 'file', id: file.id }" class="absolute top-3 left-3 w-4 h-4 text-blue-600 rounded border-gray-300" @click.stop />
+                <input
+                  type="checkbox"
+                  v-model="selectedItems"
+                  :value="{ type: 'file', id: file.id }"
+                  class="absolute top-3 left-3 w-4 h-4 text-blue-600 rounded border-gray-300"
+                  @click.stop
+                />
 
                 <!-- File Icon -->
                 <i class="fas fa-file-alt fa-4x mb-3 text-blue-400 group-hover:text-sky-500 transition"></i>
 
                 <!-- File Info -->
-                <p class="font-semibold text-gray-800 truncate group-hover:text-blue-600 transition">{{ file.name || file.org_filename }}</p>
-                <p class="text-xs text-green-700 mt-1"> {{ file.status || 'Released' }}</p>
-                <p class="text-xs text-gray-500 mt-1">{{ formatDate(file.created_at) }} <span v-if="file.file_size"> | {{ file.file_size }}</span></p>
+                <p class="font-semibold text-gray-800 truncate group-hover:text-blue-600 transition">
+                  {{ file.name || file.org_filename }}
+                </p>
+                <p class="text-xs text-green-700 mt-1">{{ file.status || 'Released' }}</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ formatDate(file.created_at) }}
+                  <span v-if="file.file_size"> | {{ file.file_size }}</span>
+                </p>
 
-                <!-- ACTIONS (Top Right Corner, show on hover) -->
-              <div
-                    class="absolute top-3 right-3 flex flex-col gap-1 opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
-                  >
-                  <button @click="viewFile(file)" class="text-blue-500 hover:text-blue-700" title="View"><i class="fas fa-eye"></i></button>
-                  <button @click="editFile(file)" class="text-yellow-500 hover:text-yellow-700" title="Edit"><i class="fas fa-edit"></i></button>
-                  <button @click="deleteFile(file)" class="text-red-500 hover:text-red-700" title="Delete"><i class="fas fa-trash-alt"></i></button>
-                  <button @click="lockFile(file)" class="text-gray-500 hover:text-gray-700" title="Lock"><i class="fas fa-lock"></i></button>
-                  <button @click="downloadFile(file)" class="text-green-500 hover:text-green-700" title="Download"><i class="fas fa-download"></i></button>
+                <!-- ACTIONS -->
+                <div
+                  class="absolute top-3 right-3 flex flex-col gap-1 opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+                >
+                  <button @click.stop="viewFile(file)" class="text-blue-500 hover:text-blue-700" title="View"><i class="fas fa-eye"></i></button>
+                  <button @click.stop="editFile(file)" class="text-yellow-500 hover:text-yellow-700" title="Edit"><i class="fas fa-edit"></i></button>
+                  <button @click.stop="deleteFile(file)" class="text-red-500 hover:text-red-700" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                  <button @click.stop="lockFile(file)" class="text-gray-500 hover:text-gray-700" title="Lock"><i class="fas fa-lock"></i></button>
+                  <button @click.stop="downloadFile(file)" class="text-green-500 hover:text-green-700" title="Download"><i class="fas fa-download"></i></button>
                 </div>
               </div>
             </div>
@@ -235,6 +247,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import { useUserStore } from "../stores/user";
 
@@ -253,7 +266,11 @@ const displayedFolders = computed(() =>
 );
 const displayedFiles = computed(() =>
   files.value.filter(f => f.folder_id === (currentFolder.value?.id || null))
+  .filter(f => f.status !== "Inactive" && f.status !== "Trash")
 );
+function goToFileDetails(fileId) {
+  router.push({ name: "fileDetails", params: { id: fileId } });
+}
 
 function toggleView() {
   isGridView.value = !isGridView.value;

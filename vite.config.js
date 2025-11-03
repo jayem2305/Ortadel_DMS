@@ -37,4 +37,19 @@ export default defineConfig({
             vue: 'vue/dist/vue.esm-bundler.js',
         },
     },
+    server: {
+  proxy: {
+    "/api": {
+      target: "http://127.0.0.1:5001",
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/api/, "/api"), // could just be identity: path => path
+    },
+    "/files": {
+      target: "http://127.0.0.1:5001",
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/files/, "/files"),
+    },
+  }
+}
+
 });

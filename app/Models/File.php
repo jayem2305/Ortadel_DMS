@@ -25,12 +25,17 @@ class File extends Model
         'file_type',
         'file_size',
         'status',
+        'related_document',
+        'version',
     ];
 
     protected $casts = [
+        'related_document' => 'array',
         'locked' => 'boolean',
         'file_size' => 'integer',
         'expiration_date' => 'datetime',
+        'version' => 'integer',
+
     ];
 
     protected $encryptable = [

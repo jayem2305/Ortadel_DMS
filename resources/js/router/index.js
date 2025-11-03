@@ -17,6 +17,7 @@ import Login from "../components/Login.vue";
 import ForgotPassword from "../components/forgotpassword.vue";
 import ChangePassword from "../components/changepassword.vue";
 import SearchBar from "../components/SearchBar.vue";
+import Viefile from "../components/view/FileDetails.vue";
 
 
 const routes = [

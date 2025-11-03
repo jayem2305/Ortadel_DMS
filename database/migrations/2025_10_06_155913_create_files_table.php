@@ -27,10 +27,13 @@ return new class extends Migration {
 
             // File metadata - length increased for encrypted values
             $table->string('keywords', 512)->nullable();   // encrypted
+            $table->string('category', 512)->nullable();   // encrypted
             $table->string('org_filename', 512)->nullable(); // encrypted
             $table->string('file', 512)->nullable();       // encrypted
             $table->string('file_type', 512)->nullable();  // encrypted
             $table->integer('file_size')->nullable();      // encrypted
+            $table->integer('version')->default(1);// encrypted
+            $table->text('related_document')->nullable();
             $table->string('status', 50)->default('Released'); // new status field
 
             // Category - foreign key constraint will be added later

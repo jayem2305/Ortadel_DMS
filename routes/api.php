@@ -16,6 +16,12 @@ use App\Http\Controllers\BatchFileUploadController;
 // use App\Http\Controllers\TestController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ScannerController;
+use App\Models\SupportingFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 // Test API route (uncomment when TestController is created)
 // Route::get('test-data', [TestController::class, 'apiData']);
@@ -131,15 +137,44 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:View Files')->group(function () {
         Route::get('file', [FileController::class, 'index']);
         Route::get('file/{file}', [FileController::class, 'show']);
+        Route::get('/file/{id}/attachments', [FileController::class, 'attachments']);
     });
 
     Route::middleware('permission:Create Files')->group(function () {
         Route::post('file', [FileController::class, 'store']);
+        Route::post('/file/{id}/attachments', [FileController::class, 'uploadAttachment']);
+        Route::post('/scan', [ScannerController::class, 'scan']);
+        Route::post('/cancel', [ScannerController::class, 'cancelScan']);
+
+
+        // Proxy scanned file requests
+        Route::get('/files/{filename}', function ($filename) {
+            $flaskUrl = 'http://127.0.0.1:5001/files/' . $filename;
+
+            try {
+                $response = Http::timeout(60)->get($flaskUrl);
+                return response($response->body(), $response->status())
+                    ->header('Content-Type', $response->header('Content-Type'));
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to get file from scanner service: ' . $e->getMessage()
+                ], 500);
+            }
+        });
     });
+
 
     Route::middleware('permission:Edit Files')->group(function () {
         Route::put('file/{file}', [FileController::class, 'update']);
         Route::patch('file/{file}', [FileController::class, 'update']);
+        Route::patch('file/{id}/move', [FileController::class, 'moveFolder']);
+        Route::patch('file/{id}/lock', [FileController::class, 'toggleLock']);
+        Route::patch('file/{id}/status', [FileController::class, 'updateStatus']);
+        Route::patch('file/{id}/related-documents', [FileController::class, 'updaterelatedDocuments']);
+        Route::match(['post', 'patch'], 'file/{file}/update-attachment', [FileController::class, 'updateAttachment']);
+
+
     });
 
     Route::middleware('permission:Delete Files')->group(function () {
@@ -166,7 +201,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Batch File Upload Routes - Protected by permissions
-    Route::middleware('permission:Upload Files')->group(function () {
+    Route::middleware('permission:Create Files')->group(function () {
         Route::get('batchfile', [BatchFileUploadController::class, 'index']);
         Route::post('batchfile', [BatchFileUploadController::class, 'store']);
         Route::get('batchfile/{batchfile}', [BatchFileUploadController::class, 'show']);
@@ -221,3 +256,29 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
     });
 });
+// routes/web.php
+
+Route::get('/storage/attachments/{id}', function ($id) {
+    Log::info("Download route called", ['id' => $id]);
+
+    try {
+        $file = SupportingFile::findOrFail($id);
+        Log::info("File found", ['stored_name' => $file->stored_name, 'original_name' => $file->org_filename]);
+
+        $path = storage_path('app/public/attachments/' . $file->org_filename);
+        Log::info("Resolved file path", ['path' => $path]);
+
+        if (!file_exists($path)) {
+            Log::warning("File not found at path", ['path' => $path]);
+            abort(404, 'File not found.');
+        }
+
+        Log::info("Sending file for download", ['original_name' => $file->org_filename]);
+        return response()->download($path, $file->org_filename);
+
+    } catch (\Exception $e) {
+        Log::error("Error in download route", ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        abort(500, 'Server error while downloading file.');
+    }
+});
+
