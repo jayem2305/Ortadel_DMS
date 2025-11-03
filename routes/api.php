@@ -16,10 +16,13 @@ use App\Http\Controllers\BatchFileUploadController;
 // use App\Http\Controllers\TestController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ScannerController;
 use App\Models\SupportingFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+
 // Test API route (uncomment when TestController is created)
 // Route::get('test-data', [TestController::class, 'apiData']);
 
@@ -137,6 +140,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:Create Files')->group(function () {
         Route::post('file', [FileController::class, 'store']);
         Route::post('/file/{id}/attachments', [FileController::class, 'uploadAttachment']);
+        Route::post('/scan', [ScannerController::class, 'scan']);
+        Route::post('/cancel', [ScannerController::class, 'cancelScan']);
+
+
+        // Proxy scanned file requests
+        Route::get('/files/{filename}', function ($filename) {
+            $flaskUrl = 'http://127.0.0.1:5001/files/' . $filename;
+
+            try {
+                $response = Http::timeout(60)->get($flaskUrl);
+                return response($response->body(), $response->status())
+                    ->header('Content-Type', $response->header('Content-Type'));
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to get file from scanner service: ' . $e->getMessage()
+                ], 500);
+            }
+        });
     });
 
 
@@ -147,7 +169,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('file/{id}/lock', [FileController::class, 'toggleLock']);
         Route::patch('file/{id}/status', [FileController::class, 'updateStatus']);
         Route::patch('file/{id}/related-documents', [FileController::class, 'updaterelatedDocuments']);
-        Route::patch('file/{file}/update-attachment', [FileController::class, 'updateAttachment']);
+        Route::match(['post', 'patch'], 'file/{file}/update-attachment', [FileController::class, 'updateAttachment']);
+
 
     });
 
@@ -175,7 +198,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Batch File Upload Routes - Protected by permissions
-    Route::middleware('permission:Upload Files')->group(function () {
+    Route::middleware('permission:Create Files')->group(function () {
         Route::get('batchfile', [BatchFileUploadController::class, 'index']);
         Route::post('batchfile', [BatchFileUploadController::class, 'store']);
         Route::get('batchfile/{batchfile}', [BatchFileUploadController::class, 'show']);

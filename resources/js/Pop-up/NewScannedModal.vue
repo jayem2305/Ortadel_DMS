@@ -1,124 +1,167 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-5xl flex gap-6 overflow-hidden">
+  <div class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-6">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col md:flex-row overflow-hidden">
 
-      <!-- LEFT: Scan Modal -->
-      <div class="w-96 flex flex-col p-6 bg-gray-50">
-        <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3 text-gray-800">
-          <i class="fas fa-scanner text-green-600 text-xl"></i>
-          New Scanned Document
+      <!-- LEFT: Scanner Controls -->
+      <div class="w-full md:w-[360px] bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+          <i class="fas fa-print text-green-600"></i>
+          New Scan
         </h2>
 
         <!-- Folder Selection -->
-        <label class="mb-2 text-gray-700 font-medium">Select Folder</label>
-        <select 
-          v-model="selectedFolder" 
-          class="mb-6 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+        <label class="text-gray-700 font-medium mb-2">Select Folder</label>
+        <select
+          v-model="selectedFolder"
+          class="mb-5 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
         >
           <option disabled value="">-- Choose Folder --</option>
-          <option v-for="folder in folders" :key="folder.id" :value="folder.name">
+          <option v-for="folder in folders" :key="folder.id" :value="folder">
             {{ folder.name }}
           </option>
         </select>
 
-        <!-- Printer/Scanner Button -->
-        <button
-          @click="scanDocument"
-          class="mb-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2 transition-shadow shadow"
-          :disabled="scannerLoading || !selectedFolder"
-        >
-          <i class="fas fa-camera"></i>
-          Scan from Printer/Scanner
-          <span v-if="scannerLoading" class="ml-2 text-sm">(Scanning...)</span>
-        </button>
+        <!-- Scan Buttons -->
+        <div class="flex flex-col gap-3 mb-4">
+          <button
+            @click="scanDocument"
+            :disabled="scannerLoading || !selectedFolder"
+            class="py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50"
+          >
+            <i class="fas fa-print"></i>
+            <span>Scan from Printer</span>
+            <span v-if="scannerLoading" class="text-sm italic">(Scanning...)</span>
+          </button>
 
-        <!-- Camera Mode Button -->
-        <button
-          @click="toggleCamera"
-          class="mb-4 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center justify-center gap-2 transition-shadow shadow"
-          :disabled="cameraError || !selectedFolder"
-        >
-          <i class="fas fa-video"></i>
-          Camera Scan
-        </button>
+         <!-- <button
+            @click="toggleCamera"
+            :disabled="cameraError || !selectedFolder"
+            class="py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50"
+          >
+            <i class="fas fa-video"></i>
+            <span>Scan via Camera</span>
+          </button>-->
+          <!-- Scan Progress -->
+<div v-if="scannerLoading" class="mt-4 flex flex-col items-start w-full space-y-2 text-sm text-gray-600">
+  
+  <!-- Text above progress bar -->
+  <div class="mb-1 font-medium" :class="canceling ? 'text-red-600' : 'text-gray-600'">
+    {{ canceling ? 'In progress of Canceling the Document Scanner...' : 'Scanning...' }}
+  </div>
 
-        <!-- Permission Error -->
-        <p v-if="cameraError" class="text-red-500 text-sm mb-2">{{ cameraError }}</p>
+  <!-- Progress Bar -->
+  <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+    <div
+      class="h-2.5 rounded-full transition-all duration-300 ease-in-out"
+      :class="canceling ? 'bg-red-500' : 'bg-gradient-to-r from-green-500 to-emerald-600'"
+      :style="{ width: scanProgress + '%' }"
+    ></div>
+  </div>
 
-        <!-- Preview / Camera Feed -->
-        <div class="mb-4 border border-gray-300 rounded p-2 bg-white flex items-center justify-center min-h-[220px]">
-          <video
-            v-if="cameraActive"
-            ref="videoRef"
-            autoplay
-            class="w-full h-full object-contain rounded"
-          ></video>
-          <img
-            v-else-if="currentPreview"
-            :src="currentPreview"
-            alt="Preview"
-            class="w-full h-full object-contain rounded"
-          />
-          <span v-else class="text-gray-400">No scan yet</span>
+  <!-- Cancel Button
+  <button
+    @click="cancelScan"
+    class="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium"
+  >
+    <i class="fas fa-ban mr-1"></i> Cancel Scan
+  </button> -->
+</div>
+
         </div>
 
-        <!-- Capture from Camera -->
+        <!-- Error Message -->
+        <p v-if="cameraError" class="text-red-500 text-sm mb-3">{{ cameraError }}</p>
+
+        <!-- Capture Button (only when camera is active) -->
         <button
           v-if="cameraActive"
-          @click="captureFromCamera"
-          class="mb-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2 transition-shadow shadow"
+          @click="captureAndAddToList"
+          class="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition"
         >
           <i class="fas fa-camera-retro"></i>
-          Capture
+          <span>Capture & Add</span>
         </button>
 
         <!-- Action Buttons -->
-        <div class="mt-auto flex justify-end space-x-3">
-          <button 
-            @click="closeModal" 
-            class="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-medium transition"
+        <div class="mt-auto flex justify-end gap-3 pt-6 border-t border-gray-200">
+          <button
+            @click="closeModal"
+            class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition"
           >
             Cancel
           </button>
-          <button
-            @click="saveCurrentScan"
-            :disabled="!currentPreview || !selectedFolder"
-            class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50"
-          >
-            Save
-          </button>
         </div>
       </div>
 
-      <!-- RIGHT: Scanned Documents Panel -->
-      <div class="flex-1 p-6 bg-white border-l border-gray-200 overflow-y-auto">
-        <h3 class="text-xl font-semibold mb-4 text-gray-800">Scanned Documents</h3>
-        <div v-if="scannedDocuments.length === 0" class="text-gray-400 italic">
-          No scanned documents yet.
+      <!-- RIGHT: Scanned Documents List -->
+      <div class="flex-1 p-6 bg-white overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-folder-open text-blue-500"></i>
+            Scanned Documents
+          </h3>
+          <span class="text-sm text-gray-500">Total: {{ scannedDocuments.length }}</span>
         </div>
-        <ul class="grid grid-cols-1 gap-3">
-          <li
-            v-for="(doc, index) in scannedDocuments"
-            :key="index"
-            class="border rounded-lg p-3 flex items-center gap-3 hover:shadow-md transition"
-          >
-            <img
-              v-if="doc.preview"
-              :src="doc.preview"
-              alt="Preview"
-              class="w-16 h-16 object-cover rounded border"
-            />
-            <div class="flex-1">
-              <p class="font-medium text-gray-800 truncate">{{ doc.name }}</p>
-              <p class="text-sm text-gray-500">Folder: {{ doc.folder }}</p>
-            </div>
-            <button @click="removeDocument(index)" class="text-red-500 hover:text-red-700 transition">
-              <i class="fas fa-trash"></i>
-            </button>
-          </li>
-        </ul>
-      </div>
 
+        <div
+          v-if="scannedDocuments.length === 0"
+          class="text-gray-400 italic flex items-center justify-center h-40 border border-dashed border-gray-300 rounded-lg"
+        >
+          No scanned documents yet
+        </div>
+          <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <li
+              v-for="(doc, index) in scannedDocuments"
+              :key="index"
+              class="border border-gray-200 rounded-lg bg-white p-3 flex flex-col shadow-sm hover:shadow-lg transition"
+            >
+              <!-- Image Preview + Remove Icon -->
+              <div class="relative">
+                <img
+                  v-if="doc.preview"
+                  :src="doc.preview"
+                  alt="Scanned Document"
+                  class="w-full h-48 object-cover rounded-md border"
+                />
+                <div
+                  class="absolute top-2 right-2 bg-white/80 rounded-full p-1 cursor-pointer hover:bg-white transition"
+                  @click="removeDocument(index)"
+                  title="Remove document"
+                >
+                  <i class="fas fa-trash text-red-600"></i>
+                </div>
+              </div>
+
+              <!-- File Info -->
+              <div class="mt-3 space-y-1">
+                <p class="font-semibold text-gray-800 truncate" title="File name">
+                  <i class="fas fa-file-alt mr-1 text-blue-500"></i>
+                  {{ doc.name }}
+                </p>
+
+                <p class="text-sm text-gray-500 flex items-center gap-1">
+                  <i class="fas fa-folder-open text-yellow-500"></i>
+                  <span>Folder: {{ doc.folder }}</span>
+                </p>
+
+                <p v-if="doc.file_size" class="text-sm text-gray-500 flex items-center gap-1">
+                  <i class="fas fa-weight-hanging text-gray-400"></i>
+                  <span>Size: {{ doc.file_size }}</span>
+                </p>
+
+                <p v-if="doc.file_type" class="text-sm text-gray-500 flex items-center gap-1">
+                  <i class="fas fa-file text-gray-400"></i>
+                  <span>Type: {{ doc.file_type }}</span>
+                </p>
+
+                <p v-if="doc.created_at" class="text-xs text-gray-400 flex items-center gap-1">
+                  <i class="fas fa-clock text-gray-400"></i>
+                  <span>Scanned on: {{ new Date(doc.created_at).toLocaleString() }}</span>
+                </p>
+              </div>
+            </li>
+          </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -132,21 +175,24 @@ export default {
   name: "NewScannedModal",
   setup() {
     const scannedDocuments = ref([]);
-    const currentPreview = ref(null);
-    const currentName = ref("");
     const selectedFolder = ref("");
     const folders = ref([]);
-
+    const cancelSource = ref(null);
     const cameraActive = ref(false);
     const videoRef = ref(null);
     const cameraError = ref(null);
     const scannerLoading = ref(false);
     let stream = null;
+    const scanProgress = ref(0);
+    let progressInterval = null;
+    const BASE_URL = "http://127.0.0.1:8000"; // Laravel URL (adjust if needed)
+    const canceling = ref(false);
 
+    // Fetch folders from Laravel API
     const fetchFolders = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/folders");
-        folders.value = response.data.folders; // make sure your API returns { folders: [...] }
+        const response = await axios.get(`${BASE_URL}/api/folders`);
+        folders.value = response.data.folders || [];
       } catch (err) {
         console.error("Failed to fetch folders:", err);
       }
@@ -154,16 +200,91 @@ export default {
 
     onMounted(() => fetchFolders());
 
-    const scanDocument = () => {
-      scannerLoading.value = true;
-      setTimeout(() => {
-        const fakeScanNumber = scannedDocuments.value.length + 1;
-        currentPreview.value = `https://via.placeholder.com/300x400.png?text=Scan+${fakeScanNumber}`;
-        currentName.value = `Scanned_Doc_${fakeScanNumber}.png`;
-        scannerLoading.value = false;
-      }, 1500);
-    };
+const scanDocument = async () => {
+  if (!selectedFolder.value) {
+    alert("Please select a folder first!");
+    return;
+  }
 
+  scannerLoading.value = true;
+  canceling.value = false;
+  scanProgress.value = 0;
+
+  progressInterval = setInterval(() => {
+    if (canceling.value) {
+      // Keep progress at whatever value or animate to 100%
+      scanProgress.value = Math.min(scanProgress.value + 5, 100);
+    } else if (scanProgress.value < 95) {
+      scanProgress.value += Math.floor(Math.random() * 3) + 1;
+    }
+  }, 1000);
+
+  cancelSource.value = axios.CancelToken.source();
+
+  try {
+    const response = await axios.post(
+      "/scan",
+      { folder_id: selectedFolder.value.id },
+      {
+        headers: { "Content-Type": "application/json" },
+        cancelToken: cancelSource.value.token,
+        timeout: 60000,
+      }
+    );
+
+    if (response.data.success) {
+      scannedDocuments.value.push({
+        name: response.data.file || `Scan_${Date.now()}.png`,
+        preview: response.data.url,
+        folder: selectedFolder.value.name,
+        file_size: response.data.file_size || "350 KB",
+        file_type: response.data.file_type || "image/png",
+        created_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    if (axios.isCancel(err)) {
+      console.log("Scan canceled by user."); // no alert
+      // keep scannerLoading true so the progress bar stays
+    } else {
+      console.error("Scanner error:", err);
+      alert("Cannot connect to scanner service via Laravel.");
+    }
+  } finally {
+    clearInterval(progressInterval);
+
+    if (!canceling.value) {
+      // Only reset if it was not canceling
+      scannerLoading.value = false;
+      scanProgress.value = 0;
+    }
+  }
+};
+
+const cancelScan = async () => {
+  canceling.value = true; // triggers red progress bar and text
+  if (cancelSource.value) cancelSource.value.cancel("User canceled the scan.");
+
+  try {
+    await axios.post(`/cancel`);
+    console.log("Cancel request sent to Flask.");
+  } catch (e) {
+    console.error("Failed to cancel scan:", e);
+  }
+
+  // Optional: stop loading after a short delay for visual effect
+  setTimeout(() => {
+    scannerLoading.value = false;
+    scanProgress.value = 0;
+    canceling.value = false;
+  }, 1000);
+};
+  
+
+
+
+
+    // ✅ Camera functions
     const toggleCamera = async () => {
       cameraError.value = null;
       if (cameraActive.value) stopCamera();
@@ -178,36 +299,34 @@ export default {
       }
     };
 
-    const captureFromCamera = () => {
-  if (!videoRef.value) return; // <-- check null
-  const canvas = document.createElement("canvas");
-  canvas.width = videoRef.value.videoWidth;
-  canvas.height = videoRef.value.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(videoRef.value, 0, 0);
-  currentPreview.value = canvas.toDataURL("image/png");
-  currentName.value = `Camera_Scan_${scannedDocuments.value.length + 1}.png`;
-  stopCamera();
-};
+    const captureAndAddToList = () => {
+      if (!videoRef.value || !selectedFolder.value) return;
 
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.value.videoWidth;
+      canvas.height = videoRef.value.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(videoRef.value, 0, 0);
+
+      const imageData = canvas.toDataURL("image/png");
+      const imageName = `Camera_Scan_${scannedDocuments.value.length + 1}.png`;
+
+      // ✅ Add directly to list
+      scannedDocuments.value.push({
+        name: imageName,
+        preview: imageData,
+        folder: selectedFolder.value.name,
+      });
+
+      stopCamera();
+    };
 
     const stopCamera = () => {
       cameraActive.value = false;
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         stream = null;
       }
-    };
-
-    const saveCurrentScan = () => {
-      if (!currentPreview.value || !selectedFolder.value) return;
-      scannedDocuments.value.push({
-        name: currentName.value,
-        preview: currentPreview.value,
-        folder: selectedFolder.value,
-      });
-      currentPreview.value = null;
-      currentName.value = "";
     };
 
     const removeDocument = (index) => {
@@ -224,7 +343,6 @@ export default {
     return {
       modalState,
       scannedDocuments,
-      currentPreview,
       selectedFolder,
       folders,
       cameraActive,
@@ -233,10 +351,13 @@ export default {
       videoRef,
       scanDocument,
       toggleCamera,
-      captureFromCamera,
-      saveCurrentScan,
+      captureAndAddToList,
       removeDocument,
       closeModal,
+      scanProgress,
+      cancelScan,
+      canceling 
+     
     };
   },
 };

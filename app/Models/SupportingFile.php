@@ -20,8 +20,6 @@ class SupportingFile extends Model
         'assign_reviewer',
         'assign_approver',
         'locked',
-        'keywords',
-        'category',
         'org_filename',
         'file',
         'file_type',
@@ -30,6 +28,7 @@ class SupportingFile extends Model
         'created_by',
         'updated_by',
         'status',
+        'version',
     ];
 
     protected $casts = [
@@ -38,6 +37,9 @@ class SupportingFile extends Model
         'expiration_date' => 'datetime',
         'file_size' => 'integer',
         'file_id' => 'integer',
+        'version' => 'integer',
+        'keywords' => 'array',
+        'category' => 'array',
     ];
 
     protected function decryptField($value)
