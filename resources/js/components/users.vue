@@ -1,6 +1,23 @@
 <template>
   <div class="bg-white rounded-xl shadow-lg p-6">
-    <h2 class="text-2xl font-bold mb-6 text-gray-800">List of Users</h2>
+    <h2 class="text-2xl font-bold mb-6 text-gray-800">Access Control</h2>
+
+    <!-- Nav Tabs -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="-mb-px flex space-x-6">
+        <button
+          v-for="tab in availableTabs"
+          :key="tab.key"
+          @click="currentTab = tab.key"
+          :class="currentTab === tab.key
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+    </div>
 
     <!-- Enhanced Search + Add Button -->
     <div class="mb-6 flex justify-between items-center">
@@ -14,7 +31,7 @@
           <input
             type="text"
             v-model="searchQuery"
-            placeholder="Search users by name, email, role..."
+            :placeholder="currentTab === 'users' ? 'Search users by name, email, role...' : currentTab === 'groups' ? 'Search groups...' : 'Search roles...'"
             class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
           <div v-if="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -30,25 +47,25 @@
           </div>
         </div>
         <div v-if="searchQuery" class="mt-2 text-sm text-gray-500">
-          {{ filteredData.length }} {{ filteredData.length === 1 ? 'user' : 'users' }} found
+          {{ filteredData.length }} {{ itemTypeName }} found
         </div>
       </div>
       <button
-        v-if="userStore.hasPermission('Create Users')"
+        v-if="canAddItem"
         class="ml-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         @click="openAddModal"
       >
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
-        Add User
+        {{ addButtonText }}
       </button>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Loading users...</p>
+      <p class="mt-2 text-gray-600">Loading {{ currentTab }}...</p>
     </div>
 
     <!-- Table -->
@@ -57,7 +74,7 @@
         <thead class="bg-gray-100">
           <tr>
             <th
-              v-for="col in columns"
+              v-for="col in currentColumns"
               :key="col"
               class="px-4 py-3 text-left text-sm font-semibold text-gray-700 capitalize"
             >
@@ -67,89 +84,160 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr
-            v-for="user in paginatedData"
-            :key="user.id"
-            class="hover:bg-gray-50 transition-colors"
-          >
-            <!-- User ID -->
-            <td class="px-4 py-3 text-sm font-medium text-gray-900">
-              {{ user.user_id || '-' }}
-            </td>
-            <!-- Name -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              {{ user.first_name || '-' }} {{ user.last_name || '-' }}
-            </td>
-            <!-- Email -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              {{ user.email || '-' }}
-            </td>
-            <!-- Role -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              <span v-if="user.role" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {{ user.role.name }}
-              </span>
-              <span v-else class="text-gray-400">-</span>
-            </td>
-            <!-- Assigned Color -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              <div v-if="user.assigned_color" class="flex items-center space-x-2">
-                <div
-                  :style="{ backgroundColor: user.assigned_color }"
-                  class="w-6 h-6 rounded-full border border-gray-300"
-                ></div>
-                <span>{{ user.assigned_color }}</span>
-              </div>
-              <span v-else class="text-gray-400">-</span>
-            </td>
-            <!-- Groups -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              <div v-if="user.groups && user.groups.length > 0" class="flex flex-wrap gap-1">
-                <span
-                  v-for="group in user.groups.slice(0, 2)"
-                  :key="group.id"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                >
-                  <img 
-                    v-if="group.logo" 
-                    :src="group.logo" 
-                    :alt="group.name"
-                    class="w-4 h-4 rounded-full object-cover"
-                  />
-                  {{ group.name }}
+          <!-- Users Tab -->
+          <template v-if="currentTab === 'users'">
+            <tr
+              v-for="user in paginatedData"
+              :key="user.id"
+              class="hover:bg-gray-50 transition-colors"
+            >
+              <!-- User ID -->
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                {{ user.user_id || '-' }}
+              </td>
+              <!-- Name -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ user.first_name || '-' }} {{ user.last_name || '-' }}
+              </td>
+              <!-- Email -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ user.email || '-' }}
+              </td>
+              <!-- Role -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <span v-if="user.role" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {{ user.role.name }}
                 </span>
-                <span v-if="user.groups.length > 2" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  +{{ user.groups.length - 2 }} more
+                <span v-else class="text-gray-400">-</span>
+              </td>
+              <!-- Assigned Color -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <div v-if="user.assigned_color" class="flex items-center space-x-2">
+                  <div
+                    :style="{ backgroundColor: user.assigned_color }"
+                    class="w-6 h-6 rounded-full border border-gray-300"
+                  ></div>
+                  <span>{{ user.assigned_color }}</span>
+                </div>
+                <span v-else class="text-gray-400">-</span>
+              </td>
+              <!-- Groups -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <div v-if="user.groups && user.groups.length > 0" class="flex flex-wrap gap-1">
+                  <span
+                    v-for="group in user.groups.slice(0, 2)"
+                    :key="group.id"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  >
+                    <img 
+                      v-if="group.logo" 
+                      :src="group.logo" 
+                      :alt="group.name"
+                      class="w-4 h-4 rounded-full object-cover"
+                    />
+                    {{ group.name }}
+                  </span>
+                  <span v-if="user.groups.length > 2" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    +{{ user.groups.length - 2 }} more
+                  </span>
+                </div>
+                <span v-else class="text-gray-400">No groups</span>
+              </td>
+              <!-- Status -->
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <span :class="user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                  {{ user.status || 'active' }}
                 </span>
-              </div>
-              <span v-else class="text-gray-400">No groups</span>
-            </td>
-            <!-- Status -->
-            <td class="px-4 py-3 text-sm text-gray-700">
-              <span :class="user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-                {{ user.status || 'active' }}
-              </span>
-            </td>
-            <!-- Actions -->
-            <td class="px-4 py-3 text-sm font-medium">
-              <div class="flex items-center space-x-2">
-                <button
-                  v-if="userStore.hasPermission('Edit Users')"
-                  @click="openEditModal(user)"
-                  class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Edit
-                </button>
-                <button
-                  v-if="userStore.hasPermission('Delete Users')"
-                  @click="deleteItem(user)"
-                  class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
+              </td>
+              <!-- Actions -->
+              <td class="px-4 py-3 text-sm font-medium">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button
+                    v-if="userStore.hasPermission('Edit Users')"
+                    @click="openEditModal(user)"
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    v-if="userStore.hasPermission('Delete Users')"
+                    @click="deleteItem(user)"
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+
+          <!-- Groups Tab -->
+          <template v-else-if="currentTab === 'groups'">
+            <tr
+              v-for="item in paginatedData"
+              :key="item.id"
+              class="hover:bg-gray-50 transition-colors"
+            >
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                {{ item.name || '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ item.description || '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <span :class="item.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                  {{ item.status || '-' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ item.members !== undefined ? item.members : '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm font-medium">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button
+                    @click="openAssignUsersToGroupModal(item)"
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Assign Users
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+
+          <!-- Roles Tab -->
+          <template v-else-if="currentTab === 'roles'">
+            <tr
+              v-for="item in paginatedData"
+              :key="item.id"
+              class="hover:bg-gray-50 transition-colors"
+            >
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                {{ item.name || '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {{ item.type || '-' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ item.description || '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-700">
+                {{ item.members !== undefined ? item.members : '-' }}
+              </td>
+              <td class="px-4 py-3 text-sm font-medium">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button
+                    @click="openAssignUsersToRoleModal(item)"
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    Assign Users
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
 
@@ -159,20 +247,20 @@
           <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.197l1.5-1.5M11 7l1.5-1.5m5 5l1.5-1.5" />
           </svg>
-          {{ searchQuery ? 'No users match your search' : 'No users found' }}
+          {{ searchQuery ? `No ${currentTab} match your search` : `No ${currentTab} found` }}
         </div>
         <p class="text-gray-500 mb-4">
-          {{ searchQuery ? 'Try adjusting your search terms' : 'Get started by adding your first user' }}
+          {{ searchQuery ? 'Try adjusting your search terms' : `Get started by adding your first ${currentTab.slice(0, -1)}` }}
         </p>
         <button
-          v-if="!searchQuery && userStore.hasPermission('Create Users')"
+          v-if="!searchQuery && canAddItem"
           @click="openAddModal"
           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          Add Your First User
+          {{ addButtonText }}
         </button>
       </div>
     </div>
@@ -181,7 +269,7 @@
     <div class="mt-6 flex justify-between items-center border-t border-gray-200 pt-4">
       <div class="flex items-center gap-4">
         <p class="text-sm text-gray-500">
-          Showing {{ startItem + 1 }} - {{ endItem }} of {{ filteredData.length }} users
+          Showing {{ startItem + 1 }} - {{ endItem }} of {{ filteredData.length }} {{ itemTypeName }}
         </p>
         <div class="flex items-center gap-2">
           <label class="text-sm text-gray-500">Show:</label>
@@ -271,15 +359,47 @@
       @success="handleUserSuccess"
     />
 
+    <!-- Create Group Modal -->
+    <CreateGroupModal
+      :is-open="showCreateGroupModal"
+      :edit-data="editingItem"
+      @close="closeCreateGroupModal"
+      @success="handleGroupSuccess"
+    />
+
+    <!-- Create Role Modal -->
+    <CreateRoleModal
+      :is-open="showCreateRoleModal"
+      :edit-data="editingItem"
+      @close="closeCreateRoleModal"
+      @success="handleRoleSuccess"
+    />
+
+    <!-- Assign Users to Role Modal -->
+    <AssignUsersToRoleModal
+      :is-open="showAssignUsersToRoleModal"
+      :role="selectedRole"
+      @close="closeAssignUsersToRoleModal"
+      @success="handleAssignSuccess"
+    />
+
+    <!-- Assign Users to Group Modal -->
+    <AssignUsersToGroupModal
+      :is-open="showAssignUsersToGroupModal"
+      :group="selectedGroup"
+      @close="closeAssignUsersToGroupModal"
+      @success="handleAssignSuccess"
+    />
+
     <!-- Confirmation Modal -->
     <ConfirmationModal
       :is-open="showConfirmModal"
       ref="confirmModalRef"
-      :title="`Delete User`"
-      :message="`Are you sure you want to delete ${itemToDelete?.first_name} ${itemToDelete?.last_name}? This action cannot be undone.`"
-      :item-name="`${itemToDelete?.first_name} ${itemToDelete?.last_name}`"
-      :item-type="'User'"
-      :confirm-text="'Delete User'"
+      :title="deleteModalTitle"
+      :message="deleteModalMessage"
+      :item-name="deleteModalItemName"
+      :item-type="deleteModalItemType"
+      :confirm-text="deleteModalConfirmText"
       :cancel-text="'Cancel'"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
@@ -291,64 +411,200 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import CreateUserModal from '../modals/CreateUserModal.vue'
+import CreateGroupModal from '../modals/CreateGroupModal.vue'
+import CreateRoleModal from '../modals/CreateRoleModal.vue'
+import AssignUsersToRoleModal from '../modals/AssignUsersToRoleModal.vue'
+import AssignUsersToGroupModal from '../modals/AssignUsersToGroupModal.vue'
 import ConfirmationModal from '../modals/ConfirmationModal.vue'
 import { useUserStore } from '../stores/user'
 
 // User store for permission checking
 const userStore = useUserStore()
 
+// Tab management
+const currentTab = ref('users')
+
+// Available tabs based on permissions
+const availableTabs = computed(() => {
+  const tabs = []
+  
+  if (userStore.hasPermission('View Users')) {
+    tabs.push({ key: 'users', label: 'Users' })
+  }
+  
+  if (userStore.hasPermission('View Groups')) {
+    tabs.push({ key: 'groups', label: 'Groups' })
+  }
+  
+  if (userStore.hasPermission('View Roles')) {
+    tabs.push({ key: 'roles', label: 'Roles' })
+  }
+  
+  return tabs
+})
+
 // Reactive data
 const dataList = ref([])
-const columns = ref(['user_id', 'name', 'email', 'role', 'assigned_color', 'groups', 'status'])
 const loading = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const perPage = ref(10)
 
+// Column definitions for each tab
+const columnsMap = {
+  users: ['user_id', 'name', 'email', 'role', 'assigned_color', 'groups', 'status'],
+  groups: ['name', 'description', 'status', 'members'],
+  roles: ['name', 'type', 'description', 'members']
+}
+
+// Current columns based on tab
+const currentColumns = computed(() => columnsMap[currentTab.value] || [])
+
 // Modal states
 const showCreateUserModal = ref(false)
+const showCreateGroupModal = ref(false)
+const showCreateRoleModal = ref(false)
+const showAssignUsersToRoleModal = ref(false)
+const showAssignUsersToGroupModal = ref(false)
 const editingItem = ref(null)
+const selectedRole = ref(null)
+const selectedGroup = ref(null)
 
 // Confirmation modal state
 const showConfirmModal = ref(false)
 const itemToDelete = ref(null)
 const confirmModalRef = ref(null)
 
-console.log('[INIT] Users component initialized')
+// API endpoints map
+const apiMap = {
+  users: 'http://127.0.0.1:8000/api/users',
+  groups: 'http://127.0.0.1:8000/api/groups',
+  roles: 'http://127.0.0.1:8000/api/roles'
+}
 
-// Fetch users data
+// Dynamic computed properties
+const itemTypeName = computed(() => {
+  const count = filteredData.value.length
+  return count === 1 ? currentTab.value.slice(0, -1) : currentTab.value
+})
+
+const addButtonText = computed(() => {
+  const singular = currentTab.value.slice(0, -1)
+  return `Add ${singular.charAt(0).toUpperCase() + singular.slice(1)}`
+})
+
+const canAddItem = computed(() => {
+  const permissionMap = {
+    users: 'Create Users',
+    groups: 'Create Groups',
+    roles: 'Create Roles'
+  }
+  return userStore.hasPermission(permissionMap[currentTab.value])
+})
+
+// Delete modal computed properties
+const deleteModalTitle = computed(() => {
+  if (!itemToDelete.value) return 'Delete Item'
+  const singular = currentTab.value.slice(0, -1)
+  return `Delete ${singular.charAt(0).toUpperCase() + singular.slice(1)}`
+})
+
+const deleteModalMessage = computed(() => {
+  if (!itemToDelete.value) return ''
+  const itemName = currentTab.value === 'users' 
+    ? `${itemToDelete.value.first_name} ${itemToDelete.value.last_name}`
+    : itemToDelete.value.name
+  return `Are you sure you want to delete ${itemName}? This action cannot be undone.`
+})
+
+const deleteModalItemName = computed(() => {
+  if (!itemToDelete.value) return ''
+  return currentTab.value === 'users' 
+    ? `${itemToDelete.value.first_name} ${itemToDelete.value.last_name}`
+    : itemToDelete.value.name
+})
+
+const deleteModalItemType = computed(() => {
+  const singular = currentTab.value.slice(0, -1)
+  return singular.charAt(0).toUpperCase() + singular.slice(1)
+})
+
+const deleteModalConfirmText = computed(() => {
+  const singular = currentTab.value.slice(0, -1)
+  return `Delete ${singular.charAt(0).toUpperCase() + singular.slice(1)}`
+})
+
+console.log('[INIT] User Management component initialized')
+
+// Fetch data based on current tab
 const fetchData = async () => {
+  // Permission check
+  const permissionMap = {
+    users: 'View Users',
+    groups: 'View Groups',
+    roles: 'View Roles'
+  }
+  
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    console.warn(`User does not have permission to view ${currentTab.value}`)
+    dataList.value = []
+    loading.value = false
+    return
+  }
+  
   loading.value = true
-  console.log('🔄 Fetching users data...')
+  console.log(`🔄 Fetching ${currentTab.value} data...`)
   
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/users')
+    const endpoint = apiMap[currentTab.value]
+    const res = await axios.get(endpoint)
     
-    // Ensure we have valid array data
-    const responseData = Array.isArray(res.data) ? res.data : []
-    dataList.value = responseData
+    let responseData = []
     
-    // DEBUG: Check groups data
-    console.log('✅ Users loaded:', responseData.length)
-    console.log('📋 Full response:', res.data)
-    
-    responseData.forEach(user => {
-      console.log(`\n👤 User: ${user.first_name} ${user.last_name}`)
-      console.log('  Groups array:', user.groups)
-      console.log('  Groups count:', user.groups ? user.groups.length : 0)
+    if (currentTab.value === 'users') {
+      responseData = Array.isArray(res.data) ? res.data : []
+      console.log('✅ Users loaded:', responseData.length)
       
-      if (user.groups && user.groups.length > 0) {
-        user.groups.forEach(g => {
-          console.log(`    📦 Group: ${g.name}, Logo: ${g.logo}`)
-        })
-      } else {
-        console.log('    ⚠️ No groups for this user')
-      }
-    })
+      // DEBUG: Check groups data
+      responseData.forEach(user => {
+        console.log(`\n👤 User: ${user.first_name} ${user.last_name}`)
+        console.log('  Groups array:', user.groups)
+        console.log('  Groups count:', user.groups ? user.groups.length : 0)
+      })
+    } else if (currentTab.value === 'groups') {
+      responseData = Array.isArray(res.data) ? res.data : res.data.groups || []
+      
+      // Fetch users and count members for each group
+      const usersRes = await axios.get(apiMap.users)
+      const users = Array.isArray(usersRes.data) ? usersRes.data : []
+      
+      responseData = responseData.map(group => {
+        const memberCount = users.filter(u =>
+          Array.isArray(u.groups) && u.groups.some(g => g.id === group.id)
+        ).length
+        return { ...group, members: memberCount }
+      })
+      
+      console.log('✅ Groups loaded:', responseData.length)
+    } else if (currentTab.value === 'roles') {
+      responseData = Array.isArray(res.data) ? res.data : res.data.roles || []
+      
+      // Fetch users and count members for each role
+      const usersRes = await axios.get(apiMap.users)
+      const users = Array.isArray(usersRes.data) ? usersRes.data : []
+      
+      responseData = responseData.map(role => {
+        const memberCount = users.filter(u => u.role_id === role.id).length
+        return { ...role, members: memberCount }
+      })
+      
+      console.log('✅ Roles loaded:', responseData.length)
+    }
     
+    dataList.value = responseData
     currentPage.value = 1
   } catch (err) {
-    console.error('❌ Failed to load users:', err)
+    console.error(`❌ Failed to load ${currentTab.value}:`, err)
     console.error('Error details:', err.response?.data)
     dataList.value = []
   } finally {
@@ -427,7 +683,14 @@ watch(searchQuery, () => {
 // Modal functions
 const openAddModal = () => {
   editingItem.value = null
-  showCreateUserModal.value = true
+  
+  if (currentTab.value === 'users') {
+    showCreateUserModal.value = true
+  } else if (currentTab.value === 'groups') {
+    showCreateGroupModal.value = true
+  } else if (currentTab.value === 'roles') {
+    showCreateRoleModal.value = true
+  }
 }
 
 const openEditModal = (user) => {
@@ -441,13 +704,71 @@ const closeCreateUserModal = () => {
   editingItem.value = null
 }
 
-const handleUserSuccess = (data) => {
-  fetchData() // Refresh the data
+const handleUserSuccess = () => {
+  fetchData()
 }
 
-// Delete user with confirmation
-const deleteItem = (user) => {
-  itemToDelete.value = user
+// Group Modal functions
+const closeCreateGroupModal = () => {
+  showCreateGroupModal.value = false
+  editingItem.value = null
+}
+
+const handleGroupSuccess = () => {
+  fetchData()
+}
+
+// Role Modal functions
+const closeCreateRoleModal = () => {
+  showCreateRoleModal.value = false
+  editingItem.value = null
+}
+
+const handleRoleSuccess = () => {
+  fetchData()
+}
+
+// Assign Users to Role Modal
+const openAssignUsersToRoleModal = (role) => {
+  selectedRole.value = role
+  showAssignUsersToRoleModal.value = true
+}
+
+const closeAssignUsersToRoleModal = () => {
+  showAssignUsersToRoleModal.value = false
+  selectedRole.value = null
+}
+
+// Assign Users to Group Modal
+const openAssignUsersToGroupModal = (group) => {
+  selectedGroup.value = group
+  showAssignUsersToGroupModal.value = true
+}
+
+const closeAssignUsersToGroupModal = () => {
+  showAssignUsersToGroupModal.value = false
+  selectedGroup.value = null
+}
+
+// Handle assign success
+const handleAssignSuccess = () => {
+  fetchData()
+}
+
+// Delete item with confirmation
+const deleteItem = (item) => {
+  const permissionMap = {
+    users: 'Delete Users',
+    groups: 'Delete Groups',
+    roles: 'Delete Roles'
+  }
+  
+  if (!userStore.hasPermission(permissionMap[currentTab.value])) {
+    alert(`You do not have permission to delete ${currentTab.value}`)
+    return
+  }
+  
+  itemToDelete.value = item
   showConfirmModal.value = true
 }
 
@@ -455,15 +776,20 @@ const confirmDelete = async () => {
   if (!itemToDelete.value) return
   
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/users/${itemToDelete.value.id}`)
+    const endpoint = `${apiMap[currentTab.value]}/${itemToDelete.value.id}`
+    await axios.delete(endpoint)
     
-    // Remove user from local data list
-    const index = dataList.value.findIndex(user => user.id === itemToDelete.value.id)
+    // Remove item from local data list
+    const index = dataList.value.findIndex(item => item.id === itemToDelete.value.id)
     if (index > -1) {
       dataList.value.splice(index, 1)
     }
     
-    console.log(`✅ Deleted user: ${itemToDelete.value.first_name} ${itemToDelete.value.last_name}`)
+    const itemName = currentTab.value === 'users' 
+      ? `${itemToDelete.value.first_name} ${itemToDelete.value.last_name}`
+      : itemToDelete.value.name
+    
+    console.log(`✅ Deleted ${currentTab.value.slice(0, -1)}: ${itemName}`)
     
     // Close modal and reset state
     showConfirmModal.value = false
@@ -475,7 +801,7 @@ const confirmDelete = async () => {
     }
     
   } catch (err) {
-    console.error('❌ Error deleting user:', err)
+    console.error(`❌ Error deleting ${currentTab.value.slice(0, -1)}:`, err)
     
     // Reset processing state on error
     if (confirmModalRef.value) {
@@ -489,11 +815,23 @@ const cancelDelete = () => {
   itemToDelete.value = null
 }
 
+// Watch for tab changes
+watch(currentTab, () => {
+  searchQuery.value = ''
+  fetchData()
+})
+
 onMounted(() => {
-  console.log('[MOUNTED] Users component mounted, calling fetchData')
+  console.log('[MOUNTED] User Management component mounted')
+  
+  // Set initial tab to first available
+  if (availableTabs.value.length > 0) {
+    currentTab.value = availableTabs.value[0].key
+  }
+  
   fetchData()
   
-  // Listen for group updates to refresh user list (to show updated group logos)
+  // Listen for group updates to refresh data
   window.addEventListener('groups-updated', fetchData)
 })
 

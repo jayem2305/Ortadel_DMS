@@ -299,4 +299,41 @@ class RoleController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all users with a specific role
+     */
+    public function getUsersWithRole($id)
+    {
+        try {
+            $role = Role::findOrFail($id);
+
+            // Get all users who have this role
+            $users = \App\Models\User::whereHas('roles', function ($query) use ($id) {
+                $query->where('roles.id', $id);
+            })->get()->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'user_id' => $user->user_id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ])
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch users with role',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

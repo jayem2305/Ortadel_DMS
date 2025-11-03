@@ -2,20 +2,33 @@
   <div
     v-if="modalState.isNewFileModalOpen"
     class="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+    @click.self="closeModal"
   >
-    <div class="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-6xl max-h-[90vh] overflow-y-auto p-8">
-   <h2 class="text-2xl font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
-      <i
-        :class="editMode
-          ? 'fa-solid fa-pen-to-square text-yellow-600'
-          : 'fa-solid fa-file-circle-plus text-blue-600'"
-      ></i>
-      {{ editMode ? 'Update File' : 'New File' }}    
-    </h2>
+    <div class="bg-white rounded-xl shadow-2xl w-[90vw] max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+        <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+          <i
+            :class="editMode
+              ? 'fa-solid fa-pen-to-square text-yellow-600'
+              : 'fa-solid fa-file-circle-plus text-blue-600'"
+          ></i>
+          {{ editMode ? 'Update File' : 'New File' }}
+        </h2>
+        <button
+          @click="closeModal"
+          type="button"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-
-
-      <form
+      <!-- Form Content -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <form
           v-if="!editMode || (editMode && editData && form.name)"
           @submit.prevent="editMode ? updateFile() : createFile()"
           class="grid grid-cols-2 gap-8"
@@ -228,12 +241,21 @@
           >
             {{ editMode ? "Update" : "Create" }}
           </button>
-
-
         </div>
       </form>
+      </div>
     </div>
   </div>
+
+  <!-- Field Required Popup -->
+  <FieldRequired
+    :isOpen="showFieldRequired"
+    :title="validationTitle"
+    :message="validationMessage"
+    :requiredFields="requiredFields"
+    @close="showFieldRequired = false"
+    @confirm="showFieldRequired = false"
+  />
   
 </template>
 
@@ -241,6 +263,7 @@
 import { reactive, ref, onMounted, computed, watch, toRef, nextTick } from "vue";
 import axios from "axios";
 import { modalState } from "../stores/modal";
+import FieldRequired from "./FieldRequired.vue";
 
 // ✅ Reusable MultiSelect component
 const MultiSelect = {
@@ -308,7 +331,7 @@ const MultiSelect = {
 
 export default {
   name: "NewFileModal",
-  components: { MultiSelect },
+  components: { MultiSelect, FieldRequired },
 
   props: {
     editMode: {
@@ -344,6 +367,12 @@ export default {
       preferredExpiration: [],
       file: null,
     });
+
+    // Validation state
+    const showFieldRequired = ref(false);
+    const validationTitle = ref("");
+    const validationMessage = ref("");
+    const requiredFields = ref([]);
 
     // Dynamic options
     const keywordOptions = ref([]);
@@ -385,7 +414,7 @@ export default {
       keywordOptions.value = keywords.data.map(k => ({ id: k.id, name: k.name }));
       categoryOptions.value = categories.data.map(c => ({ id: c.id, name: c.name }));
       userOptions.value = users.data;
-      groupOptions.value = groups.data.groups || [];
+      groupOptions.value = Array.isArray(groups.data) ? groups.data : (groups.data.groups || []);
       roleOptions.value = roles.data;
       folderOptions.value = Array.isArray(folders.data)
         ? folders.data
@@ -459,8 +488,108 @@ export default {
       if (newVal && props.editMode) await fillEditData();
     });
 
+    // Watch for modal opening to refresh groups and other options
+    watch(() => modalState.isNewFileModalOpen, async (isOpen) => {
+      if (isOpen) {
+        await loadOptions();
+        console.log("✅ Groups and options refreshed");
+      }
+    });
+
+    // Send notifications to all reviewers
+    const sendNotificationsToReviewers = async (fileData) => {
+      try {
+        // Collect all reviewer user IDs
+        const reviewerUserIds = [];
+        
+        // Add individual reviewers
+        if (form.reviewer_individual && form.reviewer_individual.length > 0) {
+          reviewerUserIds.push(...form.reviewer_individual);
+        }
+
+        // Get users from reviewer groups
+        if (form.reviewer_groups && form.reviewer_groups.length > 0) {
+          for (const groupId of form.reviewer_groups) {
+            try {
+              const groupResponse = await axios.get(`http://127.0.0.1:8000/api/groups/${groupId}/users`);
+              console.log('Group users response:', groupResponse.data);
+              if (groupResponse.data && groupResponse.data.success && groupResponse.data.users && Array.isArray(groupResponse.data.users)) {
+                // Use user_id (encrypted field) instead of id (database primary key)
+                const groupUserIds = groupResponse.data.users.map(u => u.user_id);
+                console.log(`✅ Fetched ${groupUserIds.length} users from group ${groupId}:`, groupUserIds);
+                reviewerUserIds.push(...groupUserIds);
+              }
+            } catch (error) {
+              console.error(`Failed to fetch users for group ${groupId}:`, error);
+            }
+          }
+        }
+
+        // Get users from reviewer roles
+        if (form.reviewer_role && form.reviewer_role.length > 0) {
+          for (const roleId of form.reviewer_role) {
+            try {
+              const roleResponse = await axios.get(`http://127.0.0.1:8000/api/roles/${roleId}/users`);
+              console.log('Role users response:', roleResponse.data);
+              if (roleResponse.data && roleResponse.data.success && roleResponse.data.users && Array.isArray(roleResponse.data.users)) {
+                // Use user_id (encrypted field) instead of id (database primary key)
+                const roleUserIds = roleResponse.data.users.map(u => u.user_id);
+                console.log(`✅ Fetched ${roleUserIds.length} users from role ${roleId}:`, roleUserIds);
+                reviewerUserIds.push(...roleUserIds);
+              }
+            } catch (error) {
+              console.error(`Failed to fetch users for role ${roleId}:`, error);
+            }
+          }
+        }
+
+        // Remove duplicates
+        const uniqueReviewerIds = [...new Set(reviewerUserIds)];
+
+        // Send notification to each reviewer
+        if (uniqueReviewerIds.length > 0) {
+          await axios.post("http://127.0.0.1:8000/api/notifications/bulk", {
+            user_ids: uniqueReviewerIds,
+            type: "document_review",
+            title: "New Document for Review",
+            message: `A new document "${fileData.name}" has been assigned to you for review.`,
+            data: {
+              file_id: fileData.id,
+              file_name: fileData.name,
+            }
+          });
+          console.log(`✅ Notifications sent to ${uniqueReviewerIds.length} reviewers`);
+        }
+      } catch (error) {
+        console.error("Failed to send notifications:", error);
+        // Don't throw error - notifications failure shouldn't stop the file creation
+      }
+    };
+
+    // Validation function
+    const validateForm = () => {
+      const missing = [];
+      
+      if (!form.name || form.name.trim() === "") missing.push("Document Name");
+      if (!form.description || form.description.trim() === "") missing.push("Description");
+      if (!editMode.value && !form.file) missing.push("File");
+      if (!form.folder_id || (Array.isArray(form.folder_id) && form.folder_id.length === 0)) missing.push("Folder");
+      
+      if (missing.length > 0) {
+        requiredFields.value = missing;
+        validationTitle.value = "Required Fields Missing";
+        validationMessage.value = "Please fill in all required fields before submitting.";
+        showFieldRequired.value = true;
+        return false;
+      }
+      return true;
+    };
+
     // Create new file
     const createFile = async () => {
+      // Validate before submission
+      if (!validateForm()) return;
+
       try {
         const formData = new FormData();
         let expirationDateToSend = form.expirationDate;
@@ -474,8 +603,7 @@ export default {
         formData.append("folder_id", form.folder_id);
         form.keywords.forEach(k => formData.append("keywords[]", k));
         form.categories.forEach(c => formData.append("categories[]", c));
-        formData.append("version", form.version);
-        formData.append("version_description", form.versionDescription);
+        // Removed version fields as they're not in the database yet
         formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
         formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
         formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
@@ -484,11 +612,16 @@ export default {
         formData.append("approver_role", JSON.stringify(form.approver_role));
         if (form.file) formData.append("file", form.file);
 
-        await axios.post("http://127.0.0.1:8000/api/file", formData, {
+        const response = await axios.post("http://127.0.0.1:8000/api/file", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
+        // Send notifications to reviewers
+        await sendNotificationsToReviewers(response.data.file || response.data);
+
         alert("File created successfully!");
+        // Emit event to refresh parent component
+        window.dispatchEvent(new CustomEvent('files-updated'));
         closeModal();
       } catch (error) {
         console.error(error);
@@ -498,6 +631,20 @@ export default {
 
     // ✅ Update file
     const updateFile = async () => {
+      // Validate before submission (file not required for update)
+      const missing = [];
+      if (!form.name || form.name.trim() === "") missing.push("Document Name");
+      if (!form.description || form.description.trim() === "") missing.push("Description");
+      if (!form.folder_id || (Array.isArray(form.folder_id) && form.folder_id.length === 0)) missing.push("Folder");
+      
+      if (missing.length > 0) {
+        requiredFields.value = missing;
+        validationTitle.value = "Required Fields Missing";
+        validationMessage.value = "Please fill in all required fields before updating.";
+        showFieldRequired.value = true;
+        return;
+      }
+
       try {
         const formData = new FormData();
         formData.append("name", form.name);
@@ -507,8 +654,7 @@ export default {
         formData.append("folder_id", form.folder_id);
         form.keywords.forEach(k => formData.append("keywords[]", k));
         form.categories.forEach(c => formData.append("categories[]", c));
-        formData.append("version", form.version);
-        formData.append("version_description", form.versionDescription);
+        // Removed version fields as they're not in the database yet
         formData.append("reviewer_groups", JSON.stringify(form.reviewer_groups));
         formData.append("reviewer_individual", JSON.stringify(form.reviewer_individual));
         formData.append("reviewer_role", JSON.stringify(form.reviewer_role));
@@ -517,11 +663,16 @@ export default {
         formData.append("approver_role", JSON.stringify(form.approver_role));
         if (form.file) formData.append("file", form.file);
 
-        await axios.post(`http://127.0.0.1:8000/api/file/${props.editData.id}`, formData, {
+        const response = await axios.post(`http://127.0.0.1:8000/api/file/${props.editData.id}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
+        // Send notifications to reviewers
+        await sendNotificationsToReviewers(response.data.file || response.data);
+
         alert("File updated successfully!");
+        // Emit event to refresh parent component
+        window.dispatchEvent(new CustomEvent('files-updated'));
         closeModal();
       } catch (error) {
         console.error(error);
@@ -545,6 +696,10 @@ export default {
       expirationOptions,
       editMode,
       editData,
+      showFieldRequired,
+      validationTitle,
+      validationMessage,
+      requiredFields,
     };
   },
 };

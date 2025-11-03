@@ -3,21 +3,27 @@
   <div
     v-if="modalState.isNewBatchModalOpen"
     class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4"
+    @click.self="closeModal"
   >
     <div
-      class="relative bg-white rounded-xl shadow-2xl w-full max-w-[95%] h-[80vh] flex overflow-hidden"
+      class="relative bg-white rounded-xl shadow-2xl w-full max-w-[95%] h-[85vh] flex overflow-hidden"
     >
-      <!-- Close Button -->
-      <button
-        @click="closeModal"
-        class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 hover:bg-red-500 text-gray-700 hover:text-white transition-all duration-200 shadow-lg text-2xl font-bold z-50 transform hover:scale-110"
-      >
-        &times;
-      </button>
+      <!-- Header -->
+      <div class="absolute top-0 left-0 right-0 px-6 py-4 border-b border-gray-200 bg-white z-10 flex justify-between items-center">
+        <h2 class="text-2xl font-semibold text-gray-800">Batch File Upload</h2>
+        <button
+          @click="closeModal"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       <!-- Left panel: Folders -->
-      <div class="w-1/3 border-r border-gray-200 p-4 overflow-y-auto">
-        <h3 class="text-lg font-semibold mb-4">Folders</h3>
+      <div class="w-1/3 border-r border-gray-200 p-4 overflow-y-auto mt-16">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">Select Folder</h3>
         <FolderTree
           :folders="folders"
           :selected-folder="selectedFolder"
@@ -26,13 +32,13 @@
       </div>
 
       <!-- Right panel: File Upload -->
-      <div class="w-2/3 flex flex-col p-6">
+      <div class="w-2/3 flex flex-col p-6 mt-16">
         <!-- Breadcrumbs -->
-        <div v-if="selectedFolder" class="mb-4">
-          <h4 class="text-lg font-semibold text-gray-800 mb-2">
-            Uploaded in this Folder Path:
-          </h4>
-          <nav class="flex items-center flex-wrap text-gray-700 text-sm">
+        <div v-if="selectedFolder" class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Upload Location:
+          </label>
+          <nav class="flex items-center flex-wrap text-gray-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-200">
             <template v-for="(folder, index) in breadcrumbPath" :key="folder.id">
               <button
                 type="button"
@@ -67,9 +73,9 @@
 
         <!-- Drop Upload Area -->
         <div 
-          class="relative border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-500 p-8 bg-gray-50 transition-colors duration-200 cursor-pointer"
+          class="relative border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-500 p-10 bg-gray-50 transition-all duration-200 cursor-pointer"
           :class="[
-            selectedFolder ? 'hover:border-blue-400 border-gray-300' : 'border-gray-200 opacity-60 cursor-not-allowed'
+            selectedFolder ? 'hover:border-blue-500 hover:bg-blue-50 border-gray-300' : 'border-gray-200 opacity-60 cursor-not-allowed'
           ]"
           @dragover.prevent="selectedFolder && $event.preventDefault()"
           @dragenter.prevent="selectedFolder && $event.preventDefault()"
@@ -173,8 +179,8 @@ const FolderTree = defineComponent({
   template: `
     <ul>
       <li v-for="folder in folders" :key="folder.id" class="mb-1">
-        <div class="flex items-center justify-between p-2 rounded cursor-pointer group"
-             :class="selectedFolder?.id === folder.id ? 'bg-blue-100 font-semibold' : 'hover:bg-gray-100'"
+        <div class="flex items-center justify-between p-2 rounded-lg cursor-pointer group transition-all"
+             :class="selectedFolder?.id === folder.id ? 'bg-blue-100 border border-blue-300 font-semibold' : 'hover:bg-gray-50'"
              @click="selectFolder(folder)">
           <div class="flex items-center">
             <span v-if="folder.children && folder.children.length"
@@ -186,12 +192,12 @@ const FolderTree = defineComponent({
                       d="M19 9l-7 7-7-7"/>
               </svg>
             </span>
-            <svg class="w-4 h-4 mr-2 transition-colors duration-200 group-hover:text-yellow-400"
-                 :class="selectedFolder?.id === folder.id ? 'text-yellow-400' : 'text-yellow-500'"
+            <svg class="w-5 h-5 mr-2 transition-colors duration-200"
+                 :class="selectedFolder?.id === folder.id ? 'text-yellow-500' : 'text-yellow-400 group-hover:text-yellow-500'"
                  fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
             </svg>
-            {{ folder.name }}
+            <span class="text-sm">{{ folder.name }}</span>
           </div>
         </div>
         <FolderTree v-if="folder.children && folder.children.length && folder.open"
@@ -217,6 +223,8 @@ export default {
       modalState.isNewBatchModalOpen = false;
       files.value = [];
       selectedFolder.value = null;
+      // Emit event to refresh parent component
+      window.dispatchEvent(new CustomEvent('files-updated'));
     };
 
     const selectFolder = (folder) => (selectedFolder.value = folder);
