@@ -48,7 +48,7 @@ class BatchFileUploadController extends Controller
 
             // --- IMAGE FILES ---
             if (str_contains($mime, 'image')) {
-                if (class_exists(\Imagick::class)) {
+                if (extension_loaded('imagick')) {
                     $image = new \Imagick($file->getRealPath());
                     $image->setImageCompression(\Imagick::COMPRESSION_JPEG);
                     $image->setImageCompressionQuality(75);
@@ -57,6 +57,7 @@ class BatchFileUploadController extends Controller
                     $image->writeImage($diskPath);
                     $image->destroy();
                 } else {
+                    // Imagick not available, use GD library
                     $img = imagecreatefromstring(file_get_contents($file->getRealPath()));
                     $width = imagesx($img);
                     $height = imagesy($img);
@@ -70,15 +71,22 @@ class BatchFileUploadController extends Controller
             }
             // --- PDF FILES ---
             elseif ($mime === 'application/pdf') {
-                try {
-                    $pdf = new \Imagick();
-                    $pdf->setResolution(100, 100);
-                    $pdf->readImage($file->getRealPath());
-                    $pdf->setImageCompression(\Imagick::COMPRESSION_JPEG);
-                    $pdf->setImageCompressionQuality(80);
-                    $pdf->writeImages($diskPath, true);
-                    $pdf->destroy();
-                } catch (\Exception $e) {
+                // Check if Imagick is available for PDF compression
+                if (extension_loaded('imagick')) {
+                    try {
+                        $pdf = new \Imagick();
+                        $pdf->setResolution(100, 100);
+                        $pdf->readImage($file->getRealPath());
+                        $pdf->setImageCompression(\Imagick::COMPRESSION_JPEG);
+                        $pdf->setImageCompressionQuality(80);
+                        $pdf->writeImages($diskPath, true);
+                        $pdf->destroy();
+                    } catch (\Exception $e) {
+                        // If Imagick fails, fall back to direct storage
+                        $file->storeAs('files', $filename . '.' . $extension, 'public');
+                    }
+                } else {
+                    // Imagick not available, save PDF directly
                     $file->storeAs('files', $filename . '.' . $extension, 'public');
                 }
             }

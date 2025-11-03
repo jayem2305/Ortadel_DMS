@@ -17,6 +17,7 @@ use App\Http\Controllers\BatchFileUploadController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ScannerController;
+use App\Http\Controllers\NotificationController;
 use App\Models\SupportingFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
@@ -99,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:View Groups')->group(function () {
         Route::get('groups', [GroupController::class, 'index']);
         Route::get('groups/{group}', [GroupController::class, 'show']);
+        Route::get('groups/{id}/users', [GroupController::class, 'getUsersInGroup']); // Get users in a group
     });
 
     Route::middleware('permission:Create Groups')->group(function () {
@@ -118,6 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:View Roles')->group(function () {
         Route::get('roles', [RoleController::class, 'index']);
         Route::get('roles/{role}', [RoleController::class, 'show']);
+        Route::get('roles/{id}/users', [RoleController::class, 'getUsersWithRole']); // Get users with a role
     });
 
     Route::middleware('permission:Create Roles')->group(function () {
@@ -255,6 +258,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:Delete Categories')->group(function () {
         Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
     });
+
+    // Notification Routes - No specific permission needed, users access their own notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+    Route::post('/notifications/bulk', [NotificationController::class, 'createBulk']); // Create notifications for multiple users
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/{id}/unread', [NotificationController::class, 'markAsUnread']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('/notifications/delete-all-read', [NotificationController::class, 'deleteAllRead']);
 });
 // routes/web.php
 

@@ -38,6 +38,11 @@ class File extends Model
 
     ];
 
+    protected $appends = [
+        'file_path',
+        'file_url',
+    ];
+
     protected $encryptable = [
         'name',
         'description',
@@ -97,5 +102,26 @@ class File extends Model
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * ✅ Custom accessor to get the file path for URL (without storage_path prefix)
+     */
+    public function getFilePathAttribute()
+    {
+        try {
+            return Crypt::decryptString($this->getRawOriginal('file'));
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * ✅ Custom accessor to get the full file URL
+     */
+    public function getFileUrlAttribute()
+    {
+        $filePath = $this->file_path;
+        return $filePath ? url('storage/' . $filePath) : null;
     }
 }

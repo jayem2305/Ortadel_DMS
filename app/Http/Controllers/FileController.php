@@ -14,13 +14,17 @@ use Intervention\Image\ImageManager;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Console\Command;
+use App\Services\NotificationService;
+
 class FileController extends Controller
 {
     protected $permissionService;
+    protected $notificationService;
 
-    public function __construct(PermissionService $permissionService)
+    public function __construct(PermissionService $permissionService, NotificationService $notificationService)
     {
         $this->permissionService = $permissionService;
+        $this->notificationService = $notificationService;
     }
     public function updateExpiredFilesApi()
     {
@@ -90,6 +94,8 @@ class FileController extends Controller
                 'name' => $this->safeDecrypt($file->getRawOriginal('name')),
                 'org_filename' => $this->safeDecrypt($file->getRawOriginal('org_filename')),
                 'file' => $this->safeDecrypt($file->getRawOriginal('file')),
+                'file_path' => $file->file_path, // Decrypted file path for storage URL
+                'file_url' => $file->file_url,   // Full URL to access file
                 'file_type' => $this->safeDecrypt($file->getRawOriginal('file_type')),
                 'folder_id' => $file->folder_id,
                 'related_document' => $file->related_document,
@@ -163,6 +169,79 @@ class FileController extends Controller
             'performed_by' => Auth::id(),
             'performed_at' => now(),
         ]);
+
+        // 🔔 Send notifications for document update
+        // Notify all users who have access to this document
+        // Get reviewers and approvers from the file's assignments
+        $notifyUserIds = [];
+
+        if ($file->assign_reviewer) {
+            $reviewers = json_decode($file->assign_reviewer, true);
+
+            // Get users from reviewer groups
+            if (!empty($reviewers['groups'])) {
+                foreach ($reviewers['groups'] as $groupId) {
+                    try {
+                        $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                        $users = json_decode($response->getContent(), true);
+                        if (isset($users['users'])) {
+                            foreach ($users['users'] as $user) {
+                                $notifyUserIds[] = $user['user_id'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Get individual reviewers
+            if (!empty($reviewers['individual'])) {
+                $notifyUserIds = array_merge($notifyUserIds, $reviewers['individual']);
+            }
+        }
+
+        if ($file->assign_approver) {
+            $approvers = json_decode($file->assign_approver, true);
+
+            // Get users from approver groups
+            if (!empty($approvers['groups'])) {
+                foreach ($approvers['groups'] as $groupId) {
+                    try {
+                        $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                        $users = json_decode($response->getContent(), true);
+                        if (isset($users['users'])) {
+                            foreach ($users['users'] as $user) {
+                                $notifyUserIds[] = $user['user_id'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Get individual approvers
+            if (!empty($approvers['individual'])) {
+                $notifyUserIds = array_merge($notifyUserIds, $approvers['individual']);
+            }
+        }
+
+        // Remove duplicates and the updater
+        $notifyUserIds = array_unique($notifyUserIds);
+        $notifyUserIds = array_filter($notifyUserIds, fn($id) => $id != Auth::id());
+
+        // Send document updated notifications
+        if (!empty($notifyUserIds)) {
+            foreach ($notifyUserIds as $userId) {
+                $this->notificationService->documentUpdated(
+                    $userId,
+                    $file->name,
+                    Auth::user()->name,
+                    $file->id
+                );
+            }
+        }
 
         return response()->json([
             'status' => 'success',
@@ -336,6 +415,11 @@ class FileController extends Controller
             ], 404);
         }
 
+        // Get file info before deletion for notifications
+        $fileName = $file->name;
+        $fileAssignReviewer = $file->assign_reviewer;
+        $fileAssignApprover = $file->assign_approver;
+
         if ($file->file && Storage::disk('public')->exists($file->file)) {
             Storage::disk('public')->delete($file->file);
         }
@@ -350,6 +434,77 @@ class FileController extends Controller
             'performed_by' => Auth::id(),
             'performed_at' => now(),
         ]);
+
+        // 🔔 Send notifications for document deletion
+        // Notify all users who had access to this document
+        $notifyUserIds = [];
+
+        if ($fileAssignReviewer) {
+            $reviewers = json_decode($fileAssignReviewer, true);
+
+            // Get users from reviewer groups
+            if (!empty($reviewers['groups'])) {
+                foreach ($reviewers['groups'] as $groupId) {
+                    try {
+                        $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                        $users = json_decode($response->getContent(), true);
+                        if (isset($users['users'])) {
+                            foreach ($users['users'] as $user) {
+                                $notifyUserIds[] = $user['user_id'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Get individual reviewers
+            if (!empty($reviewers['individual'])) {
+                $notifyUserIds = array_merge($notifyUserIds, $reviewers['individual']);
+            }
+        }
+
+        if ($fileAssignApprover) {
+            $approvers = json_decode($fileAssignApprover, true);
+
+            // Get users from approver groups
+            if (!empty($approvers['groups'])) {
+                foreach ($approvers['groups'] as $groupId) {
+                    try {
+                        $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                        $users = json_decode($response->getContent(), true);
+                        if (isset($users['users'])) {
+                            foreach ($users['users'] as $user) {
+                                $notifyUserIds[] = $user['user_id'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Get individual approvers
+            if (!empty($approvers['individual'])) {
+                $notifyUserIds = array_merge($notifyUserIds, $approvers['individual']);
+            }
+        }
+
+        // Remove duplicates and the deleter
+        $notifyUserIds = array_unique($notifyUserIds);
+        $notifyUserIds = array_filter($notifyUserIds, fn($id) => $id != Auth::id());
+
+        // Send document deleted notifications
+        if (!empty($notifyUserIds)) {
+            foreach ($notifyUserIds as $userId) {
+                $this->notificationService->documentDeleted(
+                    $userId,
+                    $fileName,
+                    Auth::user()->name
+                );
+            }
+        }
 
         return response()->json([
             'status' => 'success',
@@ -494,17 +649,24 @@ class FileController extends Controller
 
             // --- PDF FILES ---
             elseif ($mime === 'application/pdf') {
-                try {
-                    $pdf = new \Imagick();
-                    $pdf->setResolution(100, 100);
-                    $pdf->readImage($file->getRealPath());
-                    $pdf->setImageCompression(\Imagick::COMPRESSION_JPEG);
-                    $pdf->setImageCompressionQuality(80);
-                    $pdf->writeImages($storageDir . $filename . '.pdf', true);
-                    $pdf->destroy();
-                    $diskPath = $storageDir . $filename . '.pdf';
-                } catch (\Exception $e) {
-                    // fallback: save as is
+                // Check if Imagick is available for PDF compression
+                if (extension_loaded('imagick')) {
+                    try {
+                        $pdf = new \Imagick();
+                        $pdf->setResolution(100, 100);
+                        $pdf->readImage($file->getRealPath());
+                        $pdf->setImageCompression(\Imagick::COMPRESSION_JPEG);
+                        $pdf->setImageCompressionQuality(80);
+                        $pdf->writeImages($storageDir . $filename . '.pdf', true);
+                        $pdf->destroy();
+                        $diskPath = $storageDir . $filename . '.pdf';
+                    } catch (\Exception $e) {
+                        // If Imagick fails, fall back to direct storage
+                        $file->storeAs('files', $filename . '.' . $extension, 'public');
+                        $diskPath = $storageDir . $filename . '.' . $extension;
+                    }
+                } else {
+                    // Imagick not available, save PDF directly
                     $file->storeAs('files', $filename . '.' . $extension, 'public');
                     $diskPath = $storageDir . $filename . '.' . $extension;
                 }
@@ -556,6 +718,123 @@ class FileController extends Controller
             'performed_by' => Auth::id(),
             'performed_at' => now(),
         ]);
+
+        // 🔔 Send notifications for new document upload
+        // Notify all reviewers about the new document that needs their review
+        $reviewerUserIds = [];
+
+        // Get users from reviewer groups
+        if (!empty($assignReviewer['groups'])) {
+            foreach ($assignReviewer['groups'] as $groupId) {
+                try {
+                    $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                    $users = json_decode($response->getContent(), true);
+                    if (isset($users['users'])) {
+                        foreach ($users['users'] as $user) {
+                            $reviewerUserIds[] = $user['user_id'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Get users from reviewer individuals
+        if (!empty($assignReviewer['individual'])) {
+            $reviewerUserIds = array_merge($reviewerUserIds, $assignReviewer['individual']);
+        }
+
+        // Get users from reviewer roles
+        if (!empty($assignReviewer['roles'])) {
+            foreach ($assignReviewer['roles'] as $roleId) {
+                try {
+                    $response = app('App\Http\Controllers\RoleController')->getUsersWithRole($roleId);
+                    $users = json_decode($response->getContent(), true);
+                    if (isset($users['users'])) {
+                        foreach ($users['users'] as $user) {
+                            $reviewerUserIds[] = $user['user_id'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to get users from role {$roleId}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Remove duplicates and the file creator
+        $reviewerUserIds = array_unique($reviewerUserIds);
+        $reviewerUserIds = array_filter($reviewerUserIds, fn($id) => $id != Auth::id());
+
+        // Send approval request notifications to all reviewers
+        if (!empty($reviewerUserIds)) {
+            foreach ($reviewerUserIds as $userId) {
+                $this->notificationService->approvalRequest(
+                    $userId,
+                    $fileRecord->name,
+                    Auth::user()->name,
+                    $fileRecord->id
+                );
+            }
+        }
+
+        // Get all approvers
+        $approverUserIds = [];
+
+        // Get users from approver groups
+        if (!empty($assignApprover['groups'])) {
+            foreach ($assignApprover['groups'] as $groupId) {
+                try {
+                    $response = app('App\Http\Controllers\GroupController')->getUsersInGroup($groupId);
+                    $users = json_decode($response->getContent(), true);
+                    if (isset($users['users'])) {
+                        foreach ($users['users'] as $user) {
+                            $approverUserIds[] = $user['user_id'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to get users from group {$groupId}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Get users from approver individuals
+        if (!empty($assignApprover['individual'])) {
+            $approverUserIds = array_merge($approverUserIds, $assignApprover['individual']);
+        }
+
+        // Get users from approver roles
+        if (!empty($assignApprover['roles'])) {
+            foreach ($assignApprover['roles'] as $roleId) {
+                try {
+                    $response = app('App\Http\Controllers\RoleController')->getUsersWithRole($roleId);
+                    $users = json_decode($response->getContent(), true);
+                    if (isset($users['users'])) {
+                        foreach ($users['users'] as $user) {
+                            $approverUserIds[] = $user['user_id'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to get users from role {$roleId}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Remove duplicates and the file creator
+        $approverUserIds = array_unique($approverUserIds);
+        $approverUserIds = array_filter($approverUserIds, fn($id) => $id != Auth::id());
+
+        // Send approval request notifications to all approvers
+        if (!empty($approverUserIds)) {
+            foreach ($approverUserIds as $userId) {
+                $this->notificationService->approvalRequest(
+                    $userId,
+                    $fileRecord->name,
+                    Auth::user()->name,
+                    $fileRecord->id
+                );
+            }
+        }
 
         return response()->json([
             'status' => 'success',

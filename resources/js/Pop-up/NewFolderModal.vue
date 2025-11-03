@@ -325,6 +325,8 @@ export default {
         const foldersRes = await axios.get("http://127.0.0.1:8000/api/folders");
         folders.value = normalizeFolders(foldersRes.data);
 
+        // Emit event to refresh parent component
+        window.dispatchEvent(new CustomEvent('folders-updated'));
         closeModal();
       } catch (err) {
         console.error(err);

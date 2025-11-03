@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
 use App\Services\PermissionService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -335,7 +336,24 @@ class UserController extends Controller
 
             $validated['last_updated_by'] = Auth::id() ?? 1;
 
+            // Check if role changed
+            $roleChanged = false;
+            $oldRole = $user->role ? $user->role->name : 'No Role';
+
             $user->update($validated);
+
+            // If role was updated, send notification
+            if (isset($validated['role_id']) && $validated['role_id'] != $user->getOriginal('role_id')) {
+                $roleChanged = true;
+                $newRole = Role::find($validated['role_id']);
+                if ($newRole) {
+                    app(NotificationService::class)->roleUpdated(
+                        $user->user_id,
+                        $newRole->name,
+                        Auth::user()->name ?? 'Administrator'
+                    );
+                }
+            }
 
             // Sync groups if provided (by group names)
             if ($groups !== null && is_array($groups)) {

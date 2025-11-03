@@ -1,114 +1,119 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-6">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col md:flex-row overflow-hidden">
-
-      <!-- LEFT: Scanner Controls -->
-      <div class="w-full md:w-[360px] bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
-          <i class="fas fa-print text-green-600"></i>
-          New Scan
+  <div class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-6" @click.self="closeModal">
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center flex-shrink-0">
+        <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fas fa-scanner text-green-600"></i>
+          Scan Documents
         </h2>
-
-        <!-- Folder Selection -->
-        <label class="text-gray-700 font-medium mb-2">Select Folder</label>
-        <select
-          v-model="selectedFolder"
-          class="mb-5 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
-        >
-          <option disabled value="">-- Choose Folder --</option>
-          <option v-for="folder in folders" :key="folder.id" :value="folder">
-            {{ folder.name }}
-          </option>
-        </select>
-
-        <!-- Scan Buttons -->
-        <div class="flex flex-col gap-3 mb-4">
-          <button
-            @click="scanDocument"
-            :disabled="scannerLoading || !selectedFolder"
-            class="py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50"
-          >
-            <i class="fas fa-print"></i>
-            <span>Scan from Printer</span>
-            <span v-if="scannerLoading" class="text-sm italic">(Scanning...)</span>
-          </button>
-
-         <!-- <button
-            @click="toggleCamera"
-            :disabled="cameraError || !selectedFolder"
-            class="py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50"
-          >
-            <i class="fas fa-video"></i>
-            <span>Scan via Camera</span>
-          </button>-->
-          <!-- Scan Progress -->
-<div v-if="scannerLoading" class="mt-4 flex flex-col items-start w-full space-y-2 text-sm text-gray-600">
-  
-  <!-- Text above progress bar -->
-  <div class="mb-1 font-medium" :class="canceling ? 'text-red-600' : 'text-gray-600'">
-    {{ canceling ? 'In progress of Canceling the Document Scanner...' : 'Scanning...' }}
-  </div>
-
-  <!-- Progress Bar -->
-  <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-    <div
-      class="h-2.5 rounded-full transition-all duration-300 ease-in-out"
-      :class="canceling ? 'bg-red-500' : 'bg-gradient-to-r from-green-500 to-emerald-600'"
-      :style="{ width: scanProgress + '%' }"
-    ></div>
-  </div>
-
-  <!-- Cancel Button
-  <button
-    @click="cancelScan"
-    class="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium"
-  >
-    <i class="fas fa-ban mr-1"></i> Cancel Scan
-  </button> -->
-</div>
-
-        </div>
-
-        <!-- Error Message -->
-        <p v-if="cameraError" class="text-red-500 text-sm mb-3">{{ cameraError }}</p>
-
-        <!-- Capture Button (only when camera is active) -->
         <button
-          v-if="cameraActive"
-          @click="captureAndAddToList"
-          class="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition"
+          @click="closeModal"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <i class="fas fa-camera-retro"></i>
-          <span>Capture & Add</span>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
-
-        <!-- Action Buttons -->
-        <div class="mt-auto flex justify-end gap-3 pt-6 border-t border-gray-200">
-          <button
-            @click="closeModal"
-            class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition"
-          >
-            Cancel
-          </button>
-        </div>
       </div>
 
-      <!-- RIGHT: Scanned Documents List -->
-      <div class="flex-1 p-6 bg-white overflow-y-auto">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-            <i class="fas fa-folder-open text-blue-500"></i>
-            Scanned Documents
-          </h3>
-          <span class="text-sm text-gray-500">Total: {{ scannedDocuments.length }}</span>
+      <!-- Content Container -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- LEFT: Scanner Controls -->
+        <div class="w-full md:w-[360px] bg-gray-50 border-r border-gray-200 p-6 flex flex-col overflow-y-auto">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Scanner Settings</h3>
+
+          <!-- Folder Selection -->
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Folder <span class="text-red-500">*</span></label>
+          <select
+            v-model="selectedFolder"
+            class="mb-5 border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+          >
+            <option disabled value="">-- Choose Folder --</option>
+            <option v-for="folder in folders" :key="folder.id" :value="folder">
+              {{ folder.name }}
+            </option>
+          </select>
+
+          <!-- Scan Buttons -->
+          <div class="flex flex-col gap-3 mb-4">
+            <button
+              @click="scanDocument"
+              :disabled="scannerLoading || !selectedFolder"
+              class="py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i class="fas fa-scanner"></i>
+              <span>Scan from Printer</span>
+              <span v-if="scannerLoading" class="text-sm italic">(Scanning...)</span>
+            </button>
+
+           <!-- <button
+              @click="toggleCamera"
+              :disabled="cameraError || !selectedFolder"
+              class="py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2 font-medium transition disabled:opacity-50"
+            >
+              <i class="fas fa-video"></i>
+              <span>Scan via Camera</span>
+            </button>-->
+            
+            <!-- Scan Progress -->
+            <div v-if="scannerLoading" class="mt-4 flex flex-col items-start w-full space-y-2 text-sm text-gray-600">
+              <!-- Text above progress bar -->
+              <div class="mb-1 font-medium" :class="canceling ? 'text-red-600' : 'text-gray-600'">
+                {{ canceling ? 'In progress of Canceling the Document Scanner...' : 'Scanning...' }}
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                <div
+                  class="h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                  :class="canceling ? 'bg-red-500' : 'bg-gradient-to-r from-green-500 to-emerald-600'"
+                  :style="{ width: scanProgress + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <p v-if="cameraError" class="text-red-500 text-sm mb-3">{{ cameraError }}</p>
+
+          <!-- Capture Button (only when camera is active) -->
+          <button
+            v-if="cameraActive"
+            @click="captureAndAddToList"
+            class="py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition"
+          >
+            <i class="fas fa-camera-retro"></i>
+            <span>Capture & Add</span>
+          </button>
+
+          <!-- Action Buttons -->
+          <div class="mt-auto flex justify-end gap-3 pt-6 border-t border-gray-200">
+            <button
+              @click="closeModal"
+              class="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
-        <div
-          v-if="scannedDocuments.length === 0"
-          class="text-gray-400 italic flex items-center justify-center h-40 border border-dashed border-gray-300 rounded-lg"
-        >
-          No scanned documents yet
-        </div>
+        <!-- RIGHT: Scanned Documents List -->
+        <div class="flex-1 p-6 bg-white overflow-y-auto">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <i class="fas fa-file-image text-blue-600"></i>
+              Scanned Documents
+            </h3>
+            <span class="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{{ scannedDocuments.length }} file{{ scannedDocuments.length !== 1 ? 's' : '' }}</span>
+          </div>
+
+          <div
+            v-if="scannedDocuments.length === 0"
+            class="text-gray-400 italic flex items-center justify-center h-40 border border-dashed border-gray-300 rounded-lg"
+          >
+            No scanned documents yet
+          </div>
           <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <li
               v-for="(doc, index) in scannedDocuments"
@@ -161,6 +166,7 @@
               </div>
             </li>
           </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -336,6 +342,10 @@ const cancelScan = async () => {
     const closeModal = () => {
       stopCamera();
       modalState.isNewScannedModalOpen = false;
+      // Emit event to refresh parent component
+      if (scannedDocuments.value.length > 0) {
+        window.dispatchEvent(new CustomEvent('files-updated'));
+      }
     };
 
     onUnmounted(() => stopCamera());

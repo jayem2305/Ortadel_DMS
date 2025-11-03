@@ -220,23 +220,8 @@
 
         <!-- Right: Notifications + Profile -->
         <div class="flex items-center justify-end space-x-4">
-          <!-- Notifications -->
-          <button class="relative text-gray-600 hover:text-gray-900 transition">
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 22c1.1 0 2-.9 2-2H10c0 1.1.9 2 2 2zM18 16v-5c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"
-              />
-            </svg>
-            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">2</span>
-          </button>
+          <!-- Notifications Bell -->
+          <NotificationBell />
 
           <!-- Profile Dropdown -->
           <div class="relative dropdown">
@@ -309,9 +294,10 @@ import NewFolderModal from '../Pop-up/NewFolderModal.vue';
 import NewBatchModal from '../Pop-up/NewBatchModal.vue';
 import NewScannedModal from '../Pop-up/NewScannedModal.vue';
 import SearchBar from './SearchBar.vue'
+import NotificationBell from './NotificationBell.vue';
 export default {
   name: "SidebarLayout",
-  components: {   SearchBar, CreateUserModal, CreateGroupModal, CreateRoleModal, NewFileModal, NewFolderModal, NewBatchModal, NewScannedModal }, 
+  components: {   SearchBar, NotificationBell, CreateUserModal, CreateGroupModal, CreateRoleModal, NewFileModal, NewFolderModal, NewBatchModal, NewScannedModal }, 
   setup() {
     const sidebarOpen = ref(true);
     const openDropdown = ref(null); // Tracks which dropdown is open
@@ -425,7 +411,7 @@ export default {
       },
       { 
         to: "/user", 
-        label: "List of Users", 
+        label: "Access Control", 
         icon: "fa-solid fa-user",
         permissions: ["View Users"]
       },
@@ -434,12 +420,6 @@ export default {
         label: "Users Management", 
         icon: "fa-solid fa-users",
         permissions: ["View Groups", "View Roles", "View Permissions"]
-      },
-      { 
-        to: "/access", 
-        label: "Access Controls", 
-        icon: "fa-solid fa-file-alt",
-        permissions: ["View Assigned Groups", "View Assigned Roles"]
       },
       { 
         to: "/tags", 

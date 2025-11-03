@@ -1,5 +1,12 @@
 <template>
   <main class="overflow-y-auto min-h-screen py-3">
+    <!-- DOCUMENT VIEWER MODAL -->
+    <DocumentViewer
+      :isOpen="isDocumentViewerOpen"
+      :file="selectedFileToView"
+      @close="closeDocumentViewer"
+    />
+
     <div class="bg-white shadow-sm rounded-lg p-3">
 
       <!-- HEADER -->
@@ -250,7 +257,9 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { useUserStore } from "../stores/user";
+import DocumentViewer from "../modals/DocumentViewer.vue";
 
+const router = useRouter();
 const userStore = useUserStore();
 const folders = ref([]);
 const files = ref([]);
@@ -261,6 +270,10 @@ const error = ref(null);
 const isGridView = ref(true);
 const selectedItems = ref([]);
 
+// Document Viewer Modal State
+const isDocumentViewerOpen = ref(false);
+const selectedFileToView = ref(null);
+
 const displayedFolders = computed(() =>
   folders.value.filter(f => f.parent_id === (currentFolder.value?.id || null))
 );
@@ -269,7 +282,11 @@ const displayedFiles = computed(() =>
   .filter(f => f.status !== "Inactive" && f.status !== "Trash")
 );
 function goToFileDetails(fileId) {
-  router.push({ name: "fileDetails", params: { id: fileId } });
+  // Find the file by ID and open it in DocumentViewer
+  const file = files.value.find(f => f.id === fileId);
+  if (file) {
+    viewFile(file);
+  }
 }
 
 function toggleView() {
@@ -349,6 +366,17 @@ function deleteSelected() {
     selectedItems.value = [];
     alert("Deleted successfully!");
   }
+}
+
+// Document Viewer Functions
+function viewFile(file) {
+  selectedFileToView.value = file;
+  isDocumentViewerOpen.value = true;
+}
+
+function closeDocumentViewer() {
+  isDocumentViewerOpen.value = false;
+  selectedFileToView.value = null;
 }
 
 onMounted(fetchData);

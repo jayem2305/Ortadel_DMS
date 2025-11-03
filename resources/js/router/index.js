@@ -5,7 +5,6 @@ import { useUserStore } from "../stores/user";
 import Settings from "../components/settings.vue";
 import Tickets from "../components/files.vue";
 import User from "../components/users.vue";
-import Contacts from "../components/access.vue";
 import Calendar from "../components/calendar.vue";
 import tags from "../components/tags.vue";
 import Layout from "../components/layout.vue";
@@ -32,8 +31,7 @@ const routes = [
       { path: "", component: Home, meta: { title: "Dashboard - Ortadel DMS" } },
       { path: "dashboard", component: Home, meta: { title: "Dashboard - Ortadel DMS" } },
       { path: "files", component: Tickets, meta: { title: "File Management - Ortadel DMS", permissions: ["View Files", "View Folders"] } },
-      { path: "user", component: User, meta: { title: "User Management - Ortadel DMS", permissions: ["View Users"] } },
-      { path: "access", component: Contacts, meta: { title: "Access Controls - Ortadel DMS", permissions: ["View Assigned Groups", "View Assigned Roles"] } },
+      { path: "user", component: User, meta: { title: "User Management - Ortadel DMS", permissions: ["View Users", "View Groups", "View Roles"] } },
       { path: "permission", component: Permissions, meta: { title: "Permissions Management - Ortadel DMS", permissions: ["View Groups", "View Roles", "View Permissions"] } },
       { path: "calendar", component: Calendar, meta: { title: "Calendar - Ortadel DMS", permissions: ["View Calendar"] } },
       { path: "tags", component: tags, meta: { title: "Tags - Ortadel DMS", permissions: ["View Tags", "View Categories"] } },

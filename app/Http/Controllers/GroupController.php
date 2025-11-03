@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\User;
 use App\Models\AuditLog;
 use App\Services\PermissionService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -77,7 +78,7 @@ class GroupController extends Controller
                     'mime' => $request->file('logo')->getMimeType(),
                 ]);
             }
-            
+
             // If frontend sent users as a JSON string (older clients), decode to array so validation passes
             if ($request->has('users') && is_string($request->users)) {
                 $decoded = json_decode($request->users, true);
@@ -420,6 +421,17 @@ class GroupController extends Controller
                 'performed_at' => now(),
             ]);
 
+            // 🔔 Send notifications to added users
+            $notificationService = app(NotificationService::class);
+            foreach ($users as $user) {
+                $notificationService->groupUpdated(
+                    $user->user_id,
+                    $group->name,
+                    'added',
+                    Auth::user()->name ?? 'Administrator'
+                );
+            }
+
             return response()->json([
                 'message' => 'Users added to group successfully',
             ])
@@ -466,6 +478,17 @@ class GroupController extends Controller
                 'performed_at' => now(),
             ]);
 
+            // 🔔 Send notifications to removed users
+            $notificationService = app(NotificationService::class);
+            foreach ($users as $user) {
+                $notificationService->groupUpdated(
+                    $user->user_id,
+                    $group->name,
+                    'removed',
+                    Auth::user()->name ?? 'Administrator'
+                );
+            }
+
             return response()->json([
                 'message' => 'Users removed from group successfully',
             ])
@@ -475,6 +498,40 @@ class GroupController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to remove users from group',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all users in a specific group
+     */
+    public function getUsersInGroup($id)
+    {
+        try {
+            $group = Group::with('users')->findOrFail($id);
+
+            $users = $group->users->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'user_id' => $user->user_id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ])
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch users in group',
                 'error' => $e->getMessage()
             ], 500);
         }
