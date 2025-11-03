@@ -28,7 +28,7 @@
                 <!-- Keywords select -->
                 <div>
                   <label class="block text-gray-600 mb-1">Keywords</label>
-                  <select v-model="localDoc.keywords" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="localDoc.keywords" class="w-full border rounded-lg p-2">
                     <option value="">Select Keyword</option>
                    <option v-for="keyword in keywordsOptions" :key="keyword.id" :value="keyword.id">
                     {{ keyword.name || keyword.keyword }}
@@ -39,7 +39,7 @@
                 <!-- Category select -->
                 <div>
                   <label class="block text-gray-600 mb-1">Category</label>
-                  <select v-model="localDoc.category" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="localDoc.category" class="w-full border rounded-lg p-2">
                     <option value="">Select Category</option>
                    <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">
                       {{ cat.name }}
@@ -55,21 +55,21 @@
               <div class="space-y-2">
                 <div>
                   <label class="block text-gray-600 mb-1">User Group</label>
-                  <select v-model="reviewer.group" @change="loadReviewerRoles" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="reviewer.group" @change="loadReviewerRoles" class="w-full border rounded-lg p-2">
                     <option value="">Select Group</option>
                     <option v-for="group in userGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-gray-600 mb-1">Role</label>
-                  <select v-model="reviewer.role" @change="loadReviewerUsers" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="reviewer.role" @change="loadReviewerUsers" class="w-full border rounded-lg p-2">
                     <option value="">Select Role</option>
                     <option v-for="role in userroles" :key="role.id" :value="role.id">{{ role.name }}</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-gray-600 mb-1">User</label>
-                  <select v-model="reviewer.user" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="reviewer.user" class="w-full border rounded-lg p-2">
                     <option value="">Select User</option>
                   <option v-for="user in useruser" :key="user.id" :value="user.id">
                     {{ user.first_name }} {{ user.last_name }}
@@ -132,21 +132,21 @@
               <div class="space-y-2">
                 <div>
                   <label class="block text-gray-600 mb-1">User Group</label>
-                  <select v-model="approver.group" @change="loadApproverRoles" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="approver.group" @change="loadApproverRoles" class="w-full border rounded-lg p-2">
                     <option value="">Select Group</option>
                     <option v-for="group in userGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-gray-600 mb-1">Role</label>
-                  <select v-model="approver.role" @change="loadApproverUsers" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="approver.role" @change="loadApproverUsers" class="w-full border rounded-lg p-2">
                     <option value="">Select Role</option>
                     <option v-for="role in userroles" :key="role.id" :value="role.id">{{ role.name }}</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-gray-600 mb-1">User</label>
-                  <select v-model="approver.user" class="w-full border rounded-lg p-2">
+                  <select multiple  v-model="approver.user" class="w-full border rounded-lg p-2">
                     <option value="">Select User</option>
                   <option v-for="user in useruser" :key="user.id" :value="user.id">
                     {{ user.first_name }} {{ user.last_name }}
@@ -186,18 +186,21 @@ const approverRoles = ref([]);
 const reviewerUsers = ref([]);
 const approverUsers = ref([]);
 const localDoc = ref({
-  keywords: [],      // array for multiple keywords
-  category: [],      // array for multiple categories
+  keywords: [], // must be an array
+  category: [], // must be an array
+  // other fields...
 });
+
 const reviewer = ref({
-  users: [],         // array for selected reviewer users
-  group: '',
-  role: '',
+  users: [],
+  group: [],
+  role: [],
 });
+
 const approver = ref({
-  users: [],         // array for selected approver users
-  group: '',
-  role: '',
+  users: [],
+  group: [],
+  role: [],
 });
 const newFileUploaded = ref(false);
 // Props & emit
@@ -301,53 +304,66 @@ const saveChanges = async () => {
     formData.append('description', localDoc.value.description || '');
     formData.append('expiration_date', localDoc.value.expiration_date || '');
     formData.append('owner_name', localDoc.value.owner_name || 'Unknown Owner');
-    formData.append('folder_id', localDoc.value.folder_id || '');
+    formData.append('file_id', localDoc.value.file_id || '');
     formData.append('version_description', localDoc.value.version_description || '');
-    formData.append('version', localDoc.value.version || '');
+    formData.append('version', parseInt(localDoc.value.version) || 1);
     formData.append('status', status.value || '');
 
-    // Reviewer/Approver arrays
-    formData.append(
-      'reviewer_groups',
-      JSON.stringify(Array.isArray(reviewer.value.group) ? reviewer.value.group : [])
-    );
-    formData.append(
-      'reviewer_individual',
-      JSON.stringify(Array.isArray(reviewer.value.user) ? reviewer.value.user : [])
-    );
-    formData.append(
-      'reviewer_role',
-      JSON.stringify(Array.isArray(reviewer.value.role) ? reviewer.value.role : [])
-    );
+formData.append(
+  'reviewer_groups',
+  JSON.stringify(Array.isArray(reviewer.value.group) ? reviewer.value.group : [])
+);
+formData.append(
+  'reviewer_individual',
+  JSON.stringify(Array.isArray(reviewer.value.user) ? reviewer.value.user : [])
+);
+formData.append(
+  'reviewer_role',
+  JSON.stringify(Array.isArray(reviewer.value.role) ? reviewer.value.role : [])
+);
 
-    formData.append(
-      'approver_groups',
-      JSON.stringify(Array.isArray(approver.value.group) ? approver.value.group : [])
-    );
-    formData.append(
-      'approver_individual',
-      JSON.stringify(Array.isArray(approver.value.user) ? approver.value.user : [])
-    );
-    formData.append(
-      'approver_role',
-      JSON.stringify(Array.isArray(approver.value.role) ? approver.value.role : [])
-    );
+formData.append(
+  'approver_groups',
+  JSON.stringify(Array.isArray(approver.value.group) ? approver.value.group : [])
+);
+formData.append(
+  'approver_individual',
+  JSON.stringify(Array.isArray(approver.value.user) ? approver.value.user : [])
+);
+formData.append(
+  'approver_role',
+  JSON.stringify(Array.isArray(approver.value.role) ? approver.value.role : [])
+);
 
-    formData.append('categories', JSON.stringify(localDoc.value.categories || []));
-    formData.append('keywords', JSON.stringify(localDoc.value.keywords || []));
+formData.append(
+  'keywords',
+  JSON.stringify(Array.isArray(localDoc.value.keywords) ? localDoc.value.keywords : [])
+);
 
-    if (localDoc.value.file instanceof File) {
+formData.append(
+  'category',
+  JSON.stringify(Array.isArray(localDoc.value.category) ? localDoc.value.category : [])
+);
+    formData.append('locked', localDoc.value.locked ? '1' : '0');
+
+    if (localDoc.value.file) {
       formData.append('file', localDoc.value.file);
     }
-
+console.log("🧾 FormData entries:");
+for (const [key, value] of formData.entries()) {
+  console.log(`${key}:`, value);
+}
     // Use PATCH directly
-    const response = await axios.patch(
-      `http://127.0.0.1:8000/api/file/${localDoc.value.id}/update-attachment`,
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      }
-    );
+const response = await axios.post(
+  `http://127.0.0.1:8000/api/file/${localDoc.value.id}/update-attachment?_method=PATCH`,
+  formData,
+  {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'Accept': 'application/json'
+    }
+  }
+);
 
     console.log('Update Response:', response.data);
     emit('saved', response.data.data);

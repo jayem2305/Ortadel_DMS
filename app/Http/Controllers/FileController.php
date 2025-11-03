@@ -565,6 +565,8 @@ class FileController extends Controller
     }
     public function updateAttachment(Request $request, SupportingFile $file)
     {
+        Log::info('Incoming updateAttachment data:', $request->all());
+
         // Check permission
         if (!$this->permissionService->hasPermission(Auth::user(), 'Document Management', 'Edit Files')) {
             return response()->json([
@@ -572,7 +574,7 @@ class FileController extends Controller
             ], 403);
         }
 
-        // Merge JSON fields
+        // Decode JSON arrays safely
         $request->merge([
             'reviewer_groups' => is_array($request->input('reviewer_groups'))
                 ? $request->input('reviewer_groups')
@@ -600,20 +602,19 @@ class FileController extends Controller
 
             'keywords' => is_array($request->input('keywords'))
                 ? $request->input('keywords')
-                : json_decode($request->input('keywords'), true) ?? [],
-
-            'categories' => is_array($request->input('categories'))
-                ? $request->input('categories')
-                : json_decode($request->input('categories'), true) ?? [],
+                : json_decode($request->input('keywords'), true),
+            'category' => is_array($request->input('category'))
+                ? $request->input('category')
+                : json_decode($request->input('category'), true),
         ]);
 
-        // Validate input
+        // Validate request
         $data = $request->validate([
             'name' => 'nullable|string',
             'description' => 'nullable|string',
             'expiration_date' => 'nullable|date',
             'owner_name' => 'required|string',
-            'folder_id' => 'nullable|integer',
+            'file_id' => 'nullable|integer',
             'reviewer_groups' => 'nullable|array',
             'reviewer_individual' => 'nullable|array',
             'reviewer_role' => 'nullable|array',
@@ -624,11 +625,13 @@ class FileController extends Controller
             'categories' => 'nullable|array',
             'version' => 'nullable|integer',
             'version_description' => 'nullable|string',
-            'file' => 'nullable|file',
+            'file' => $request->hasFile('file')
+                ? 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt|max:51200'
+                : 'nullable',
             'locked' => 'nullable|boolean',
         ]);
 
-        // Combine reviewer & approver assignments
+        // Combine reviewer & approver assignments into single JSONs
         $assignReviewer = [
             'groups' => $data['reviewer_groups'] ?? [],
             'individual' => $data['reviewer_individual'] ?? [],
@@ -643,7 +646,7 @@ class FileController extends Controller
         $data['assign_reviewer'] = json_encode($assignReviewer);
         $data['assign_approver'] = json_encode($assignApprover);
 
-        // File upload
+        // Handle file upload
         if ($request->hasFile('file')) {
             $fileInput = $request->file('file');
             $originalName = $fileInput->getClientOriginalName();
@@ -657,7 +660,7 @@ class FileController extends Controller
 
             $diskPath = $storageDir . $filename . '.' . $extension;
 
-            // --- IMAGE FILES ---
+            // --- IMAGE ---
             if (str_contains($mime, 'image')) {
                 if (class_exists(\Imagick::class)) {
                     $image = new \Imagick($fileInput->getRealPath());
@@ -679,7 +682,7 @@ class FileController extends Controller
                     imagedestroy($resized);
                 }
             }
-            // --- PDF FILES ---
+            // --- PDF ---
             elseif ($mime === 'application/pdf') {
                 try {
                     $pdf = new \Imagick();
@@ -695,32 +698,31 @@ class FileController extends Controller
                     $diskPath = $storageDir . $filename . '.' . $extension;
                 }
             }
-            // --- OFFICE FILES ---
-            elseif (in_array($extension, ['doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx'])) {
-                $fileInput->storeAs('files', $filename . '.' . $extension, 'public');
-                $diskPath = $storageDir . $filename . '.' . $extension;
-            }
-            // --- OTHER FILES ---
+            // --- OFFICE or OTHER FILES ---
             else {
                 $fileInput->storeAs('files', $filename . '.' . $extension, 'public');
                 $diskPath = $storageDir . $filename . '.' . $extension;
             }
 
-            // Save file info
+            // Update file info
             $data['file'] = 'files/' . basename($diskPath);
             $data['org_filename'] = $originalName;
             $data['file_type'] = $mime;
             $data['file_size'] = file_exists($diskPath) ? filesize($diskPath) : 0;
 
-            // Increment version
+            // Increment version only if file uploaded
             $data['version'] = ($file->version ?? 0) + 1;
             Log::info("Incrementing version to: " . $data['version']);
+        } else {
+            $data['version'] = $file->version ?? 1;
         }
-        // Default name
+
+        // Default name if missing
         if (empty($data['name']) && isset($data['org_filename'])) {
             $data['name'] = pathinfo($data['org_filename'], PATHINFO_FILENAME);
         }
-        // Determine status
+
+        // Determine file status
         $hasReviewers = !empty($assignReviewer['groups']) || !empty($assignReviewer['individual']);
         $hasApprovers = !empty($assignApprover['groups']) || !empty($assignApprover['individual']);
         $today = \Carbon\Carbon::today();
@@ -731,8 +733,19 @@ class FileController extends Controller
             $data['status'] = ($hasReviewers || $hasApprovers) ? 'Pending' : 'Released';
         }
 
-        // Update file
-        $file->update($data);
+        // 🧹 Remove request-only fields (not DB columns)
+        unset(
+            $data['reviewer_groups'],
+            $data['reviewer_individual'],
+            $data['reviewer_role'],
+            $data['approver_groups'],
+            $data['approver_individual'],
+            $data['approver_role'],
+            $data['categories']
+        );
+
+        // ✅ Update model cleanly
+        $file->fill($data);
         $file->updated_by = Auth::id();
         $file->save();
 
@@ -752,6 +765,7 @@ class FileController extends Controller
             'data' => $file,
         ]);
     }
+
 
     public function uploadAttachment(Request $request, $id)
     {

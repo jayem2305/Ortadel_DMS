@@ -26,6 +26,7 @@ class File extends Model
         'file_size',
         'status',
         'related_document',
+        'version',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class File extends Model
         'locked' => 'boolean',
         'file_size' => 'integer',
         'expiration_date' => 'datetime',
+        'version' => 'integer',
 
     ];
 
