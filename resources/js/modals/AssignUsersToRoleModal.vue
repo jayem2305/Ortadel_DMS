@@ -244,9 +244,9 @@ const resetForm = () => {
   successMessage.value = ''
 }
 
-watch(() => props.isOpen, (newVal) => {
+watch(() => props.isOpen, async (newVal) => {
   if (newVal) {
-    fetchUsers()
+    await fetchUsers()
     // Pre-select users with this role
     if (props.role?.id) {
       selectedUserIds.value = users.value
@@ -258,9 +258,9 @@ watch(() => props.isOpen, (newVal) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (props.isOpen) {
-    fetchUsers()
+    await fetchUsers()
   }
 })
 </script>

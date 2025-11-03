@@ -316,6 +316,7 @@ class UserController extends Controller
             'assigned_color' => 'nullable|string|max:7',
             'role_id' => 'sometimes|integer|exists:roles,id',
             'groups' => 'nullable|array',
+            'group_ids' => 'nullable|array', // Accept group IDs
         ]);
 
         try {
@@ -332,7 +333,9 @@ class UserController extends Controller
 
             // Extract groups before updating (since it's not a fillable attribute)
             $groups = $validated['groups'] ?? null;
+            $groupIds = $validated['group_ids'] ?? null;
             unset($validated['groups']);
+            unset($validated['group_ids']);
 
             $validated['last_updated_by'] = Auth::id() ?? 1;
 
@@ -355,22 +358,30 @@ class UserController extends Controller
                 }
             }
 
-            // Sync groups if provided (by group names)
-            if ($groups !== null && is_array($groups)) {
+            // Sync groups if provided (support both group IDs and group names)
+            if ($groupIds !== null && is_array($groupIds)) {
+                // Use group_ids directly if provided
+                if (count($groupIds) === 0) {
+                    $user->groups()->detach();
+                } else {
+                    $user->groups()->sync($groupIds);
+                }
+            } elseif ($groups !== null && is_array($groups)) {
+                // Legacy support: by group names
                 if (count($groups) === 0) {
                     // If empty array, detach all groups
                     $user->groups()->detach();
                 } else {
                     // Find group IDs by names (decrypt and compare)
-                    $groupIds = [];
+                    $foundGroupIds = [];
                     foreach (\App\Models\Group::all() as $group) {
                         if (in_array($group->name, $groups)) {
-                            $groupIds[] = $group->id;
+                            $foundGroupIds[] = $group->id;
                         }
                     }
 
-                    if (count($groupIds) > 0) {
-                        $user->groups()->sync($groupIds);
+                    if (count($foundGroupIds) > 0) {
+                        $user->groups()->sync($foundGroupIds);
                     }
                 }
             }

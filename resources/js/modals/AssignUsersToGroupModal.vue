@@ -282,25 +282,23 @@ const resetForm = () => {
   successMessage.value = ''
 }
 
-watch(() => props.isOpen, (newVal) => {
+watch(() => props.isOpen, async (newVal) => {
   if (newVal) {
-    fetchUsers()
+    await fetchUsers()
     // Pre-select users who are already in this group
     if (props.group?.id) {
-      setTimeout(() => {
-        selectedUserIds.value = users.value
-          .filter(u => u.groups && u.groups.some(g => g.id === props.group.id))
-          .map(u => u.id)
-      }, 100)
+      selectedUserIds.value = users.value
+        .filter(u => u.groups && u.groups.some(g => g.id === props.group.id))
+        .map(u => u.id)
     }
   } else {
     resetForm()
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (props.isOpen) {
-    fetchUsers()
+    await fetchUsers()
   }
 })
 </script>
