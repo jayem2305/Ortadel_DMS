@@ -33,7 +33,6 @@
                 <input
                   v-model="formData.name"
                   type="text"
-                  required
                   placeholder="e.g., Finance Team, HR Managers"
                   class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
@@ -54,8 +53,8 @@
 
               <!-- Group Details Row -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Status -->
-                <div>
+                <!-- Status (only editable in Edit mode) -->
+                <div v-if="isEditMode">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select
                     v-model="formData.status"
@@ -134,40 +133,8 @@
               </div>
             </div>
 
-
-
-
-
-            <!-- Assignment Sections -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- Assign Roles -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">Assign Roles</label>
-                <div class="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50">
-                  <div v-if="availableRoles.length === 0" class="text-gray-500 text-sm text-center py-4">
-                    No roles available. 
-                    <button type="button" @click="openCreateRoleModal" class="text-blue-600 hover:text-blue-800 font-medium ml-1">
-                      Create a role first
-                    </button>
-                  </div>
-                  <div v-else class="space-y-3">
-                    <label v-for="role in availableRoles" :key="role.id" class="flex items-start p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
-                      <input
-                        v-model="formData.selectedRoles"
-                        type="checkbox"
-                        :value="role.id"
-                        class="mt-1 mr-3 text-blue-600 focus:ring-blue-500 rounded"
-                      />
-                      <div class="flex-1 min-w-0">
-                        <div class="text-sm font-medium text-gray-800">{{ role.name }}</div>
-                        <div class="text-xs text-gray-500 mt-1">{{ role.description || 'No description' }}</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Assign Users -->
+            <!-- Assignment Sections: Users  -->
+            <div class="grid grid-cols-1 gap-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-3">Assign Users</label>
                 <input
@@ -203,7 +170,7 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="mt-8 flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div class="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
               type="button"
               @click="closeModal"
@@ -223,6 +190,30 @@
             </button>
           </div>
         </form>
+        <!-- Confirmation Modal for Missing Required Fields -->
+        <ConfirmationModal
+          :isOpen="showConfirmationModal"
+          title="Required Fields Missing"
+          :message="confirmationMessage"
+          confirmText="OK"
+          :cancelText="null"
+          @confirm="closeConfirmationModal"
+          @cancel="closeConfirmationModal"
+        >
+          <template v-if="confirmationFields.length > 0">
+            <ul class="list-disc list-inside text-sm text-gray-700">
+              <li v-for="field in confirmationFields" :key="field">{{ field }}</li>
+            </ul>
+          </template>
+        </ConfirmationModal>
+
+        <!-- Validation Modal -->
+        <ValidationModal
+          :isOpen="showValidationModal"
+          :message="validationMessage"
+          :errors="validationErrors"
+          @close="closeValidationModal"
+        />
       </div>
     </div>
   </transition>
@@ -231,6 +222,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import ConfirmationModal from './ConfirmationModal.vue'
+import ValidationModal from './ValidationModal.vue'
 
 // Props and Emits
 const props = defineProps({
@@ -244,12 +237,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'success', 'openCreateRole'])
+const emit = defineEmits(['close', 'success'])
 
 // Reactive Data
 const isSubmitting = ref(false)
 const userSearchQuery = ref('')
-const availableRoles = ref([])
 const availableUsers = ref([])
 const logoPreview = ref('')
 const logoFileInput = ref(null)
@@ -261,7 +253,6 @@ const formData = ref({
   status: 'active',
   assigned_color: '#3B82F6',
   logo: '',
-  selectedRoles: [],
   selectedUsers: []
 })
 
@@ -290,12 +281,16 @@ const resetForm = () => {
     status: 'active',
     assigned_color: '#3B82F6',
     logo: '',
-    selectedRoles: [],
     selectedUsers: []
   }
   logoPreview.value = ''
   userSearchQuery.value = ''
 }
+
+// Validation Modal
+const showValidationModal = ref(false)
+const validationMessage = ref('')
+const validationErrors = ref([])
 
 // Logo handling methods
 const handleLogoUpload = (event) => {
@@ -304,13 +299,25 @@ const handleLogoUpload = (event) => {
   
   // Validate file size (2MB max)
   if (file.size > 2 * 1024 * 1024) {
-    alert('File size must be less than 2MB')
+    showValidationModal.value = true
+    validationMessage.value = 'Logo file size exceeds the maximum allowed size.'
+    validationErrors.value = ['Maximum file size: 2MB', `Your file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`]
+    // Clear the file input
+    if (logoFileInput.value) {
+      logoFileInput.value.value = ''
+    }
     return
   }
   
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    alert('Please select an image file')
+    showValidationModal.value = true
+    validationMessage.value = 'Invalid file type selected.'
+    validationErrors.value = ['Allowed types: JPEG, PNG, JPG, GIF', `Your file type: ${file.type || 'Unknown'}`]
+    // Clear the file input
+    if (logoFileInput.value) {
+      logoFileInput.value.value = ''
+    }
     return
   }
   
@@ -320,6 +327,12 @@ const handleLogoUpload = (event) => {
     formData.value.logo = e.target.result // Store as base64
   }
   reader.readAsDataURL(file)
+}
+
+const closeValidationModal = () => {
+  showValidationModal.value = false
+  validationMessage.value = ''
+  validationErrors.value = []
 }
 
 const removeLogo = () => {
@@ -332,83 +345,209 @@ const removeLogo = () => {
 
 
 
-const fetchRoles = async () => {
-  try {
-    const response = await axios.get('http://127.0.0.1:8000/api/roles')
-    availableRoles.value = response.data || []
-  } catch (error) {
-    console.error('Error fetching roles:', error)
-    availableRoles.value = []
-  }
-}
+// const fetchRoles = async () => {
+//   try {
+//     const response = await axios.get('http://127.0.0.1:8000/api/roles')
+//     availableRoles.value = response.data || []
+//   } catch (error) {
+//     console.error('Error fetching roles:', error)
+//     availableRoles.value = []
+//   }
+// }
 
 const fetchUsers = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/users')
+    const response = await axios.get('/users')
     availableUsers.value = response.data || []
+    console.log('[CreateGroupModal] fetchUsers -> availableUsers', availableUsers.value)
   } catch (error) {
     console.error('Error fetching users:', error)
     availableUsers.value = []
   }
 }
 
+const showConfirmationModal = ref(false)
+const confirmationMessage = ref('')
+const confirmationFields = ref([])
+
 const submitForm = async () => {
+  // Client-side required checks before network submission
+  const missing = []
+  if (!formData.value.name || !formData.value.name.trim()) missing.push('Group Name')
+  if (!formData.value.selectedUsers || formData.value.selectedUsers.length === 0) missing.push('At least one user')
+  
+  if (missing.length > 0) {
+    showConfirmationModal.value = true
+    confirmationMessage.value = 'Please provide the following required fields:'
+    confirmationFields.value = missing
+    return
+  }
+
   if (isSubmitting.value) return
-  
   isSubmitting.value = true
-  
+
   try {
     const payload = {
       name: formData.value.name,
-      description: formData.value.description,
+      description: formData.value.description || '',
       status: formData.value.status,
       assigned_color: formData.value.assigned_color,
-      logo: formData.value.logo, // Include logo in payload
-      roles: formData.value.selectedRoles,
-      users: formData.value.selectedUsers
+      users: formData.value.selectedUsers || []
     }
+
+    console.log('[CreateGroupModal] Submitting form...')
+    console.log('[CreateGroupModal] logoFileInput.value:', logoFileInput.value)
+    console.log('[CreateGroupModal] logoFileInput.value?.files[0]:', logoFileInput.value?.files[0])
+    console.log('[CreateGroupModal] logoPreview.value:', logoPreview.value)
+
+    // Check if there's a logo file to upload (check both the input and if we have a new preview that starts with data:)
+    const hasNewLogoFile = logoFileInput.value?.files?.[0]
+    const hasNewLogoPreview = logoPreview.value && logoPreview.value.startsWith('data:')
     
-    let response
-    if (isEditMode.value) {
-      response = await axios.put(`http://127.0.0.1:8000/api/groups/${props.editData.id}`, payload)
+    // Handle logo separately if needed (for file upload)
+    if (hasNewLogoFile || hasNewLogoPreview) {
+      console.log('[CreateGroupModal] Logo detected, using FormData')
+      const fd = new FormData()
+      fd.append('name', payload.name)
+      fd.append('description', payload.description)
+      fd.append('status', payload.status)
+      fd.append('assigned_color', payload.assigned_color)
+      
+      // Append users array
+      payload.users.forEach((id) => fd.append('users[]', id))
+      
+      // Append logo file - try to get from file input first, then convert base64
+      if (hasNewLogoFile) {
+        fd.append('logo', logoFileInput.value.files[0])
+        console.log('[CreateGroupModal] FormData prepared with logo file:', logoFileInput.value.files[0].name)
+      } else if (hasNewLogoPreview) {
+        // Convert base64 to blob
+        const base64Data = logoPreview.value.split(',')[1]
+        const mimeType = logoPreview.value.split(';')[0].split(':')[1]
+        const byteCharacters = atob(base64Data)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: mimeType })
+        const file = new File([blob], 'logo.' + mimeType.split('/')[1], { type: mimeType })
+        fd.append('logo', file)
+        console.log('[CreateGroupModal] FormData prepared with base64 converted logo')
+      }
+
+      let response
+      if (isEditMode.value) {
+        fd.append('_method', 'PUT')
+        response = await axios.post(`/groups/${props.editData.id}`, fd, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+      } else {
+        response = await axios.post('/groups', fd, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+      }
+      emit('success', response.data)
+      console.log('[CreateGroupModal] Group saved successfully with logo')
     } else {
-      response = await axios.post('http://127.0.0.1:8000/api/groups', payload)
+      // No file upload, send as JSON
+      console.log('[CreateGroupModal] No logo file, sending as JSON')
+      let response
+      if (isEditMode.value) {
+        response = await axios.put(`/groups/${props.editData.id}`, payload)
+      } else {
+        response = await axios.post('/groups', payload)
+      }
+      emit('success', response.data)
+      console.log('[CreateGroupModal] Group saved successfully without logo')
     }
-    
-    emit('success', response.data)
+
     closeModal()
   } catch (error) {
-    console.error('Error saving group:', error)
-    alert('Error saving group. Please try again.')
+    console.error('[CreateGroupModal] Error saving group:', error)
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    })
+    
+    if (error.response?.data?.message) {
+      alert(error.response.data.message + (error.response.data.error ? '\n\nDetails: ' + error.response.data.error : ''))
+    } else if (error.response?.data?.errors) {
+      const errors = Object.values(error.response.data.errors).flat()
+      alert('Validation errors:\n' + errors.join('\n'))
+    } else {
+      alert('Error saving group. Please try again.\n\n' + (error.message || 'Unknown error'))
+    }
   } finally {
     isSubmitting.value = false
   }
 }
 
-const openCreateRoleModal = () => {
-  emit('openCreateRole')
+const closeConfirmationModal = () => {
+  showConfirmationModal.value = false
+  confirmationMessage.value = ''
+  confirmationFields.value = []
 }
 
-// Watch for edit data changes
-watch(() => props.editData, (newData) => {
-  if (newData) {
-    formData.value = {
-      name: newData.name || '',
-      description: newData.description || '',
-      status: newData.status || 'active',
-      assigned_color: newData.assigned_color || '#3B82F6',
-      logo: newData.logo || '',
-      selectedRoles: Array.isArray(newData.roles) ? newData.roles.map(r => typeof r === 'object' ? r.id : r) : [],
-      selectedUsers: Array.isArray(newData.users) ? newData.users.map(u => typeof u === 'object' ? u.id : u) : []
+// Watch for isOpen changes
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen) {
+    // Always fetch fresh user data when modal opens
+    await fetchUsers()
+    
+    // If editing, populate form with editData
+    if (props.editData) {
+      console.log('[CreateGroupModal] Modal opened with editData:', props.editData)
+      console.log('[CreateGroupModal] editData.users:', props.editData.users)
+      console.log('[CreateGroupModal] editData.logo:', props.editData.logo)
+      
+      // Wait a tick to ensure availableUsers is populated
+      await new Promise(resolve => setTimeout(resolve, 50))
+      
+      formData.value = {
+        name: props.editData.name || '',
+        description: props.editData.description || '',
+        status: props.editData.status || 'active',
+        assigned_color: props.editData.assigned_color || '#3B82F6',
+        logo: props.editData.logo || '',
+        selectedUsers: []
+      }
+      
+      // Set logo preview if editing (important: this shows the logo image)
+      if (props.editData.logo) {
+        logoPreview.value = props.editData.logo
+        console.log('[CreateGroupModal] Set logo preview to:', logoPreview.value)
+      } else {
+        logoPreview.value = ''
+        console.log('[CreateGroupModal] No logo in editData, clearing preview')
+      }
+      
+      // Set selected users after users are loaded
+      if (Array.isArray(props.editData.users) && props.editData.users.length > 0) {
+        formData.value.selectedUsers = props.editData.users.map(u => {
+          const userId = typeof u === 'object' ? u.id : u
+          return Number(userId)
+        })
+        console.log('[CreateGroupModal] Set selectedUsers to:', formData.value.selectedUsers)
+        console.log('[CreateGroupModal] Available users:', availableUsers.value.map(u => ({ id: u.id, name: `${u.first_name} ${u.last_name}` })))
+      } else {
+        console.log('[CreateGroupModal] No users in editData or users array is empty')
+      }
+    } else {
+      console.log('[CreateGroupModal] No editData, creating new group')
+      // Reset form for new group
+      resetForm()
     }
-    // Set logo preview if editing
-    logoPreview.value = newData.logo || ''
   }
-}, { immediate: true })
+})
 
 // Fetch data on mount
 onMounted(() => {
-  fetchRoles()
   fetchUsers()
 })
 </script>

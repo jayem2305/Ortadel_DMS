@@ -108,11 +108,14 @@ class DatabaseSeeder extends Seeder
         // Login credentials for immediate system access
         $this->command->info('👤 Login credentials:');
         $this->command->info('   • Admin: admin@ortadel.com / password (Developer role - Full access)');
-        $this->command->info('   • Developer: developer@ortadel.com / password (Developer role - Full access)');
-        $this->command->info('   • Test: test@example.com / password (Admin role - Full access)');
+        $this->command->info('   • Developer: dev@ortadel.com / password (Developer role - Full access)');
+        $this->command->info('   • Manager: manager@ortadel.com / password (Manager role - Restricted access)');
+        $this->command->info('   • Staff: staff@ortadel.com / password (Staff role - Minimal access)');
+        $this->command->info('   • Reviewer: reviewer@ortadel.com / password (Reviewer role - Review documents)');
+        $this->command->info('   • Approver: approver@ortadel.com / password (Approver role - Approve documents)');
         $this->command->info('');
         
         // Important note about developer role permissions
-        $this->command->info('🔑 Developer role has ALL 43 permissions - complete system access!');
+        $this->command->info('🔑 Developer & Admin roles have ALL permissions - complete system access!');
     }
 }

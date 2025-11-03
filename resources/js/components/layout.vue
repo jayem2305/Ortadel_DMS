@@ -97,7 +97,7 @@
         <div class="flex items-center space-x-3">
 
           <!-- Add User Dropdown -->
-          <div class="relative dropdown">
+          <div v-if="userStore.hasPermission('Create Users') || userStore.hasPermission('Create Groups') || userStore.hasPermission('Create Roles')" class="relative dropdown">
             <button
               @click.stop="toggleDropdown('adduser')"
               class="flex items-center justify-center w-9 h-9 bg-[#2563EB] text-white rounded-lg hover:bg-[#1E40AF] transition"
@@ -108,10 +108,11 @@
               v-if="openDropdown === 'adduser'"
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
-              <a @click="openModal" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer">
+              <a v-if="userStore.hasPermission('Create Users')" @click="openModal" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer">
                 <i class="fa-solid fa-user-plus mr-2"></i> Add User
               </a>
               <a
+                v-if="userStore.hasPermission('Create Groups')"
                 @click.prevent="openModalAddGroup"
                 href="#"
                 class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
@@ -119,6 +120,7 @@
                 <i class="fa-solid fa-ticket mr-2"></i> Add Group
               </a>
               <a 
+                v-if="userStore.hasPermission('Create Roles')"
                 @click.prevent="openModalAddRole"
                 href="#"
                 class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
@@ -128,8 +130,8 @@
             </div>
           </div>
 
-          <!-- Plus Dropdown -->
-          <div class="relative dropdown">
+          <!-- Plus Dropdown (Show if user has any file/folder creation permission) -->
+          <div v-if="userStore.hasPermission('Upload Files') || userStore.hasPermission('Create Files') || userStore.hasPermission('Create Folders')" class="relative dropdown">
             <button
               @click.stop="toggleDropdown('plus')"
               class="flex items-center justify-center w-9 h-9 bg-[#2563EB] text-white rounded-lg hover:bg-[#1E40AF] transition"
@@ -140,16 +142,16 @@
               v-if="openDropdown === 'plus'"
               class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50"
             >
-              <a @click.prevent="openNewFileModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a v-if="userStore.hasPermission('Upload Files') || userStore.hasPermission('Create Files')" @click.prevent="openNewFileModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                 <i class="fa-regular fa-file mr-2"></i> New File
               </a>
-              <a @click.prevent="openNewFolderModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a v-if="userStore.hasPermission('Create Folders')" @click.prevent="openNewFolderModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                 <i class="fa-regular fa-folder mr-2"></i> New Folder
               </a>
-              <a @click.prevent="openNewBatchModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a v-if="userStore.hasPermission('Upload Files')" @click.prevent="openNewBatchModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                 <i class="fa-solid fa-layer-group mr-2"></i> New Batch File
               </a>
-              <a @click.prevent="openNewScannedModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+              <a v-if="userStore.hasPermission('Upload Files')" @click.prevent="openNewScannedModal" href="#" class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                 <i class="fa-solid fa-file-invoice mr-2"></i> New Scanned Document
               </a>
             </div>
@@ -331,11 +333,18 @@ export default {
 
     watch(
       () => userStore.user,
-      (newUser) => console.log("Logged in user:", newUser),
+      (newUser) => {
+        console.log("[Layout] User updated:", newUser);
+        console.log("[Layout] User permissions:", newUser?.permissions);
+      },
       { immediate: true }
     );
 
     onMounted(() => {
+      console.log("[Layout] Component mounted");
+      console.log("[Layout] User store state:", userStore.user);
+      console.log("[Layout] Is authenticated:", userStore.isAuthenticated);
+      
       document.addEventListener("click", (e) => {
         if (!e.target.closest(".dropdown")) {
           openDropdown.value = null;
@@ -406,79 +415,99 @@ export default {
         to: "/dashboard", 
         label: "Dashboard", 
         icon: "fas fa-home",
-        permission: "View Dashboard"
+        permissions: ["View Dashboard"]
       },
       { 
         to: "/files", 
         label: "Document Management", 
         icon: "fa-solid fa-folder",
-        permission: "View Files"
+        permissions: ["View Files", "View Folders"]
       },
       { 
         to: "/user", 
         label: "List of Users", 
         icon: "fa-solid fa-user",
-        permission: "View Users"
+        permissions: ["View Users"]
       },
       { 
         to: "/permission", 
         label: "Users Management", 
         icon: "fa-solid fa-users",
-        permission: "View Groups" // Users Management includes Groups/Roles
+        permissions: ["View Groups", "View Roles", "View Permissions"]
       },
       { 
         to: "/access", 
         label: "Access Controls", 
         icon: "fa-solid fa-file-alt",
-        permission: "View Assigned Groups"
+        permissions: ["View Assigned Groups", "View Assigned Roles"]
       },
       { 
         to: "/tags", 
         label: "Tags", 
         icon: "fas fa-tags",
-        permission: "View Tags"
+        permissions: ["View Tags", "View Categories"]
       },
       { 
         to: "/calendar", 
         label: "Calendar", 
         icon: "fas fa-calendar-alt",
-        permission: "View Calendar"
+        permissions: ["View Calendar"]
       },
       { 
         to: "/log", 
         label: "Audit Logs", 
         icon: "fas fa-clipboard-list",
-        permission: "View Logs"
+        permissions: ["View Logs"]
       },
       { 
         to: "/recycle", 
         label: "Recycle Bin", 
         icon: "fas fa-trash",
-        permission: "View Recycle Bin"
+        permissions: ["View Recycle Bin"]
       },
     ];
 
-    // Filter menu items based on user permissions
+    // Filter menu items based on user permissions (user needs ANY of the listed permissions)
     const filteredMenu = computed(() => {
-      const user = userStore.user;
-      console.log('Current user in layout:', user); // Debug log
-      console.log('User permissions:', user?.permissions); // Debug log
-      
-      if (!user || !user.permissions) {
-        console.log('No user or permissions found, returning empty menu'); // Debug log
-        return []; // No user or permissions loaded yet
-      }
+      try {
+        const user = userStore.user;
+        
+        // If no user, return empty (but don't block the app)
+        if (!user) {
+          console.warn('[Layout] No user in store');
+          return [];
+        }
 
-      const filtered = menu.filter(item => {
-        // Check if user has the required permission
-        const userPermissions = user.permissions || [];
-        const hasPermission = userPermissions.includes(item.permission);
-        console.log(`Checking permission "${item.permission}" for "${item.label}": ${hasPermission}`); // Debug log
-        return hasPermission;
-      });
-      
-      console.log('Filtered menu items:', filtered); // Debug log
-      return filtered;
+        // Check if permissions exist and is an array
+        const userPermissions = Array.isArray(user.permissions) ? user.permissions : [];
+        
+        if (userPermissions.length === 0) {
+          console.warn('[Layout] User has no permissions:', user);
+          return [];
+        }
+
+        const filtered = menu.filter(item => {
+          // Safety check for item permissions
+          if (!item || !Array.isArray(item.permissions)) {
+            console.warn('[Layout] Invalid menu item:', item);
+            return false;
+          }
+          
+          // Check if user has ANY of the required permissions
+          const hasPermission = item.permissions.some(permission => 
+            userPermissions.includes(permission)
+          );
+          
+          return hasPermission;
+        });
+        
+        console.log('[Layout] Filtered menu:', filtered.length, 'items from', menu.length);
+        return filtered;
+      } catch (error) {
+        console.error('[Layout] Critical error in filteredMenu:', error);
+        // Return all menu items as fallback to prevent app from hanging
+        return menu;
+      }
     });
 
     return {

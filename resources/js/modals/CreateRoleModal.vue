@@ -26,8 +26,11 @@
           <div class="space-y-6 mb-8">
             <!-- Role Name -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Role Name <span class="text-red-500">*</span>
+              <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
+                <span>Role Name <span class="text-red-500">*</span></span>
+                <span v-if="formData.type" :class="formData.type === 'system' ? 'text-sm font-semibold text-red-600 bg-red-100 px-2 py-1 rounded' : 'text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded'">
+                  {{ roleTypeLabel }}
+                </span>
               </label>
               <input
                 v-model="formData.name"
@@ -50,19 +53,8 @@
             </div>
 
             <!-- Role Details Row -->
+             <!-- Role type is determined automatically (system vs custom) based on seeded roles -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Role Type -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Role Type</label>
-                <select
-                  v-model="formData.type"
-                  class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  <option value="system">System Role</option>
-                  <option value="custom">Custom Role</option>
-                </select>
-              </div>
-
               <!-- Role Color -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Role Color</label>
@@ -72,12 +64,12 @@
                     type="color"
                     class="w-14 h-12 border border-gray-300 rounded-lg cursor-pointer"
                   />
-                  <input
+                    <input
                     v-model="formData.color"
                     type="text"
                     placeholder="#10B981"
-                    class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
+                    class="flex-1 min-w-0 w-3/4 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
                 </div>
               </div>
             </div>
@@ -146,7 +138,7 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
               type="button"
               @click="closeModal"
@@ -166,6 +158,23 @@
             </button>
           </div>
         </form>
+
+        <!-- Confirmation Modal for Missing Required Fields -->
+        <ConfirmationModal
+          :isOpen="showConfirmation"
+          title="Required Fields Missing"
+          :message="confirmationMessage"
+          confirmText="OK"
+          :cancelText="null"
+          @confirm="closeConfirmation"
+          @cancel="closeConfirmation"
+        >
+          <template v-if="confirmationFields.length > 0">
+            <ul class="list-disc list-inside mt-3 text-sm text-gray-700">
+              <li v-for="field in confirmationFields" :key="field">{{ field }}</li>
+            </ul>
+          </template>
+        </ConfirmationModal>
       </div>
     </div>
   </transition>
@@ -174,6 +183,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import ConfirmationModal from './ConfirmationModal.vue'
 
 // Props and Emits
 const props = defineProps({
@@ -204,6 +214,8 @@ const formData = ref({
 // Computed
 const isEditMode = computed(() => !!props.editData)
 
+const roleTypeLabel = computed(() => formData.value.type === 'system' ? 'System Role' : 'Custom Role')
+
 // Methods
 const closeModal = () => {
   resetForm()
@@ -222,7 +234,7 @@ const resetForm = () => {
 
 const fetchPermissions = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/permissions')
+    const response = await axios.get('/permissions')
     availablePermissions.value = response.data || []
   } catch (error) {
     console.error('Error fetching permissions:', error)
@@ -238,8 +250,24 @@ const clearAllPermissions = () => {
   formData.value.selectedPermissions = []
 }
 
+const showConfirmation = ref(false)
+const confirmationMessage = ref('')
+const confirmationFields = ref([])
+
 const submitForm = async () => {
   if (isSubmitting.value) return
+  
+  // Validation: Check required fields
+  const missingFields = []
+  if (!formData.value.name || !formData.value.name.trim()) missingFields.push('Role Name')
+  if (formData.value.selectedPermissions.length === 0) missingFields.push('At least one permission')
+  
+  if (missingFields.length > 0) {
+    showConfirmation.value = true
+    confirmationMessage.value = 'Please provide the following required fields:'
+    confirmationFields.value = missingFields
+    return
+  }
   
   isSubmitting.value = true
   
@@ -254,9 +282,9 @@ const submitForm = async () => {
     
     let response
     if (isEditMode.value) {
-      response = await axios.put(`http://127.0.0.1:8000/api/roles/${props.editData.id}`, payload)
+      response = await axios.put(`/roles/${props.editData.id}`, payload)
     } else {
-      response = await axios.post('http://127.0.0.1:8000/api/roles', payload)
+      response = await axios.post('/roles', payload)
     }
     
     emit('success', response.data)
@@ -269,26 +297,45 @@ const submitForm = async () => {
   }
 }
 
+const closeConfirmation = () => {
+  showConfirmation.value = false
+  confirmationMessage.value = ''
+  confirmationFields.value = []
+}
+
 // Watch for edit data changes
-watch(() => props.editData, (newData) => {
+watch(() => props.editData, async (newData) => {
   if (newData) {
-    // Normalize the type field - if it's a role name, convert to 'custom'
-    // Only 'system' and 'custom' are valid for the backend
-    let roleType = newData.type || 'custom'
-    if (roleType !== 'system' && roleType !== 'custom') {
-      // If type is something like 'Developer', 'Admin', etc., default to 'custom'
-      roleType = 'custom'
-    }
-    
+    // Determine whether the role is a system (seeded) role or custom
+    const SYSTEM_ROLES = ['Developer', 'Admin', 'Manager', 'Staff']
+    const isSystem = SYSTEM_ROLES.includes(newData.name)
+
     formData.value = {
       name: newData.name || '',
       description: newData.description || '',
-      type: roleType,
+      type: isSystem ? 'system' : 'custom',
       color: newData.color || '#10B981',
-      selectedPermissions: newData.permissions?.map(p => p.id) || []
+      selectedPermissions: []
+    }
+    
+    // Ensure permissions are loaded before setting selected ones
+    if (availablePermissions.value.length === 0) {
+      await fetchPermissions()
+    }
+    
+    // Set selected permissions after available permissions are loaded
+    if (newData.permissions && Array.isArray(newData.permissions)) {
+      formData.value.selectedPermissions = newData.permissions.map(p => Number(p.id))
     }
   }
 }, { immediate: true })
+
+// Watch role name and auto-classify type based on seeded roles
+watch(() => formData.value.name, (name) => {
+  const SYSTEM_ROLES = ['Developer', 'Admin', 'Manager', 'Staff']
+  if (!name) return
+  formData.value.type = SYSTEM_ROLES.includes(name) ? 'system' : 'custom'
+})
 
 // Fetch data on mount
 onMounted(() => {

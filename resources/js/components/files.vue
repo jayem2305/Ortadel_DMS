@@ -17,7 +17,9 @@
             <i :class="[isGridView ? 'fas fa-list text-emerald-600' : 'fas fa-th-large text-emerald-600']"></i>
             {{ isGridView ? 'List View' : 'Grid View' }}
           </button>
-         <button
+
+          <button
+            v-if="userStore.hasPermission('Upload Files')"
             class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg shadow-md transition flex items-center gap-2"
           >
             <i class="fas fa-file-export"></i> Export
@@ -247,8 +249,9 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-const router = useRouter(); 
+import { useUserStore } from "../stores/user";
 
+const userStore = useUserStore();
 const folders = ref([]);
 const files = ref([]);
 const breadcrumb = ref([]);
@@ -286,6 +289,13 @@ function formatFileSize(size) {
 }
 
 async function fetchData() {
+  // Check permissions
+  if (!userStore.hasPermission('View Files') && !userStore.hasPermission('View Folders')) {
+    error.value = "You don't have permission to view files and folders";
+    loading.value = false;
+    return;
+  }
+  
   try {
     const [foldersRes, filesRes] = await Promise.all([
       axios.get("http://127.0.0.1:8000/api/folders"),
@@ -317,12 +327,24 @@ function goHome() {
 }
 
 function downloadSelected() {
+  if (!userStore.hasPermission('Download Files')) {
+    alert('You do not have permission to download files');
+    return;
+  }
   alert(`Downloading ${selectedItems.value.length} item(s)...`);
 }
 function moveSelected() {
+  if (!userStore.hasPermission('Edit Files')) {
+    alert('You do not have permission to move files');
+    return;
+  }
   alert(`Moving ${selectedItems.value.length} item(s)...`);
 }
 function deleteSelected() {
+  if (!userStore.hasPermission('Delete Files')) {
+    alert('You do not have permission to delete files');
+    return;
+  }
   if (confirm(`Delete ${selectedItems.value.length} item(s)?`)) {
     selectedItems.value = [];
     alert("Deleted successfully!");

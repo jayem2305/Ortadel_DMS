@@ -33,6 +33,7 @@ export const useUserStore = defineStore("user", {
     isAuthenticated: (state) => !!state.token,
     isDeveloper: (state) => state.user?.role?.name === 'Developer',
     isAdmin: (state) => state.user?.role?.name === 'Admin',
+    isManager: (state) => state.user?.role?.name === 'Manager',
     userRole: (state) => state.user?.role?.name || null,
     userPermissions: (state) => state.user?.permissions || [],
     userPermissionsByModule: (state) => state.user?.permissions_by_module || {},

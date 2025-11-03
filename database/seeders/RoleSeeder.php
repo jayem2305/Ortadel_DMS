@@ -49,11 +49,6 @@ class RoleSeeder extends Seeder
         ]);
 
         $restrictedForManager = [
-            "Create Users",
-            "Edit Users",
-            "Delete Users",
-            "Delete Groups",
-            "View Roles",
             "Create Roles",
             "Edit Roles",
             "Delete Roles",
@@ -106,6 +101,7 @@ class RoleSeeder extends Seeder
             "Delete Tags"
         ];
 
+
         // Get all permissions and filter by decrypted names and modules
         $staffPermIds = [];
         foreach ($allPermissions as $permission) {
@@ -129,5 +125,89 @@ class RoleSeeder extends Seeder
         }
 
         $staff->permissions()->sync(array_unique($staffPermIds));
+
+        // Reviewer (document review access - read-only + comments + review)
+        $reviewer = Role::create([
+            'name' => 'Reviewer',
+            'type' => 'Reviewer',
+            'color' => '#8b5cf6',
+            'description' => 'Can review and comment on documents',
+            'created_by' => 1,
+            'updated_by' => 1
+        ]);
+
+        $reviewerAllowedPerms = [
+            "View Dashboard",
+            "View Users",
+            "View Groups",
+            "View Roles",
+            "View Files",
+            "View Folders",
+            "View File Versions",
+            "View Shared Links",
+            "View Favorites",
+            "Add to Favorites",
+            "Remove from Favorites",
+            "View Recent Files",
+            "View Shared With Me",
+            "Download Files",
+            "View Categories",
+            "View Tags",
+            "View Calendar",
+            "View Comments",
+            "Add Comments",
+            "Edit Comments",
+            "Review Files"
+        ];
+
+        $reviewerPermIds = [];
+        foreach ($allPermissions as $permission) {
+            if (in_array($permission->name, $reviewerAllowedPerms)) {
+                $reviewerPermIds[] = $permission->id;
+            }
+        }
+        $reviewer->permissions()->sync($reviewerPermIds);
+
+        // Approver (document approval access - read-only + approve + comments)
+        $approver = Role::create([
+            'name' => 'Approver',
+            'type' => 'Approver',
+            'color' => '#ec4899',
+            'description' => 'Can approve and reject documents',
+            'created_by' => 1,
+            'updated_by' => 1
+        ]);
+
+        $approverAllowedPerms = [
+            "View Dashboard",
+            "View Users",
+            "View Groups",
+            "View Roles",
+            "View Files",
+            "View Folders",
+            "View File Versions",
+            "View Shared Links",
+            "View Favorites",
+            "Add to Favorites",
+            "Remove from Favorites",
+            "View Recent Files",
+            "View Shared With Me",
+            "Download Files",
+            "View Categories",
+            "View Tags",
+            "View Calendar",
+            "View Comments",
+            "Add Comments",
+            "Approve Files",
+            "Review Files"
+        ];
+
+        $approverPermIds = [];
+        foreach ($allPermissions as $permission) {
+            if (in_array($permission->name, $approverAllowedPerms)) {
+                $approverPermIds[] = $permission->id;
+            }
+        }
+        $approver->permissions()->sync($approverPermIds);
     }
 }

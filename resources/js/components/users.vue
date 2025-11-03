@@ -108,8 +108,14 @@
                 <span
                   v-for="group in user.groups.slice(0, 2)"
                   :key="group.id"
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
                 >
+                  <img 
+                    v-if="group.logo" 
+                    :src="group.logo" 
+                    :alt="group.name"
+                    class="w-4 h-4 rounded-full object-cover"
+                  />
                   {{ group.name }}
                 </span>
                 <span v-if="user.groups.length > 2" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -282,7 +288,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import CreateUserModal from '../modals/CreateUserModal.vue'
 import ConfirmationModal from '../modals/ConfirmationModal.vue'
@@ -313,7 +319,7 @@ console.log('[INIT] Users component initialized')
 // Fetch users data
 const fetchData = async () => {
   loading.value = true
-  console.log('Fetching users data...')
+  console.log('🔄 Fetching users data...')
   
   try {
     const res = await axios.get('http://127.0.0.1:8000/api/users')
@@ -322,10 +328,28 @@ const fetchData = async () => {
     const responseData = Array.isArray(res.data) ? res.data : []
     dataList.value = responseData
     
-    console.log(`✅ Loaded ${dataList.value.length} users`)
+    // DEBUG: Check groups data
+    console.log('✅ Users loaded:', responseData.length)
+    console.log('📋 Full response:', res.data)
+    
+    responseData.forEach(user => {
+      console.log(`\n👤 User: ${user.first_name} ${user.last_name}`)
+      console.log('  Groups array:', user.groups)
+      console.log('  Groups count:', user.groups ? user.groups.length : 0)
+      
+      if (user.groups && user.groups.length > 0) {
+        user.groups.forEach(g => {
+          console.log(`    📦 Group: ${g.name}, Logo: ${g.logo}`)
+        })
+      } else {
+        console.log('    ⚠️ No groups for this user')
+      }
+    })
+    
     currentPage.value = 1
   } catch (err) {
-    console.error('❌ Failed to load users:', err.message)
+    console.error('❌ Failed to load users:', err)
+    console.error('Error details:', err.response?.data)
     dataList.value = []
   } finally {
     loading.value = false
@@ -418,7 +442,6 @@ const closeCreateUserModal = () => {
 }
 
 const handleUserSuccess = (data) => {
-  console.log('User created/updated:', data)
   fetchData() // Refresh the data
 }
 
@@ -469,5 +492,12 @@ const cancelDelete = () => {
 onMounted(() => {
   console.log('[MOUNTED] Users component mounted, calling fetchData')
   fetchData()
+  
+  // Listen for group updates to refresh user list (to show updated group logos)
+  window.addEventListener('groups-updated', fetchData)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('groups-updated', fetchData)
 })
 </script>

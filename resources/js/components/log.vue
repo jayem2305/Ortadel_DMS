@@ -97,14 +97,21 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '../stores/user'
 import { FilePlus as ILucideFilePlus, Pencil as ILucidePencil, Trash2 as ILucideTrash2, Info as ILucideInfo } from 'lucide-vue-next'
 
+const userStore = useUserStore()
 const currentPage = ref(1)
 const perPage = 10
 const searchQuery = ref("")
 const logs = ref([])
 
 const fetchLogs = async () => {
+  if (!userStore.hasPermission('View Logs')) {
+    console.warn('User does not have permission to view logs');
+    logs.value = [];
+    return;
+  }
   try {
     const res = await axios.get('http://127.0.0.1:8000/api/audit-logs')
     const data = await Promise.all(res.data.map(async log => {

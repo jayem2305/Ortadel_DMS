@@ -78,6 +78,40 @@ class UserSeeder extends Seeder
             'created_at' => now(),
         ]);
 
+        // === REVIEWER ROLE USERS (Role ID: 5) ===
+        // These users can review and comment on documents
+        
+        $reviewer1 = User::create([
+            'user_id' => 'REV_0001',
+            'first_name' => 'Sarah',
+            'last_name' => 'Reviewer',
+            'email' => 'reviewer@ortadel.com',
+            'email_verified_at' => now(),
+            'assigned_color' => '#8b5cf6',
+            'role_id' => 5, // Reviewer role
+            'created_by' => 1,
+            'last_updated_by' => 1,
+            'password' => Hash::make('password'),
+            'created_at' => now(),
+        ]);
+
+        // === APPROVER ROLE USERS (Role ID: 6) ===
+        // These users can approve and reject documents
+        
+        $approver1 = User::create([
+            'user_id' => 'APV_0001',
+            'first_name' => 'Robert',
+            'last_name' => 'Approver',
+            'email' => 'approver@ortadel.com',
+            'email_verified_at' => now(),
+            'assigned_color' => '#ec4899',
+            'role_id' => 6, // Approver role
+            'created_by' => 1,
+            'last_updated_by' => 1,
+            'password' => Hash::make('password'),
+            'created_at' => now(),
+        ]);
+
     }
 }
 

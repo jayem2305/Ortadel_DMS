@@ -35,6 +35,10 @@ return new class extends Migration {
             $table->integer('version')->default(1);// encrypted
             $table->text('related_document')->nullable();
             $table->string('status', 50)->default('Released'); // new status field
+
+            // Category - foreign key constraint will be added later
+            $table->unsignedBigInteger('category_id')->nullable();
+
             $table->timestamps();
         });
     }
